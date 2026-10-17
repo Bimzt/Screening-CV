@@ -7,7 +7,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Are You The Choosen?"
+  title: "Are You The Chosen?"
 };
 
 export default function RootLayout({
