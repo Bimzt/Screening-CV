@@ -1,0 +1,75 @@
+{
+  "version": "1.0",
+  "division": "Business Development",
+  "divisionAliases": [
+    "business development",
+    "bussiness development",
+    "bizdev",
+    "bd",
+    "sales & partnership",
+    "partnership",
+    "bd intern",
+    "business relationship"
+  ],
+  "title": "Business Development & Partnership Intern",
+  "jd": "Mengidentifikasi peluang kerja sama B2B dan ekspansi pasar, melakukan riset pasar dan analisis kompetitor, menyusun proposal kemitraan (partnership proposal) dan pitch deck kerja sama, melakukan cold pitching dan presentasi kepada calon mitra institusi/komunitas/sekolah, serta menegosiasikan kesepakatan kolaborasi yang menguntungkan perusahaan.",
+  "hardRequirements": {
+    "mandatorySkills": {
+      "items": [
+        "Partnership",
+        "Negosiasi",
+        "Komunikasi"
+      ],
+      "rule": "min_n",
+      "minCount": 2
+    },
+    "minGpa": 3.2,
+    "allowedMajors": [
+      "Manajemen",
+      "Bisnis",
+      "Ekonomi",
+      "Pemasaran",
+      "Ilmu Komunikasi",
+      "Hubungan Internasional",
+      "Administrasi Bisnis",
+      "Teknik Industri"
+    ]
+  },
+  "additionalSkills": [
+    "B2B Sales",
+    "Cold Pitching",
+    "Market Research",
+    "Pitch Deck",
+    "Proposal Kerja Sama",
+    "Lead Generation",
+    "CRM",
+    "Presentation",
+    "Sponsorship"
+  ],
+  "categories": {
+    "experience": {
+      "label": "Pengalaman Organisasi & Kerja Sama",
+      "weight": 35,
+      "active": true
+    },
+    "projects": {
+      "label": "Project / Proposal Kemitraan",
+      "weight": 30,
+      "active": true
+    },
+    "cert_edu": {
+      "label": "Sertifikasi & Pendidikan",
+      "weight": 15,
+      "active": true
+    },
+    "competencies": {
+      "label": "Kompetensi",
+      "weight": 20,
+      "active": true
+    }
+  },
+  "thresholds": {
+    "durationMonths": 12,
+    "projectsCount": 2
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "division": "HR OD",
+  "divisionAliases": [
+    "hr od",
+    "hrod",
+    "organization development",
+    "organizational development",
+    "people development",
+    "training and development",
+    "hr generalist",
+    "od intern"
+  ],
+  "title": "HR Organization Development Intern",
+  "jd": "Menganalisis kebutuhan pengembangan organisasi (Training Needs Analysis), merancang silabus dan modul pelatihan karyawan, mengukur efektivitas training dengan evaluasi Kirkpatrick, memonitor pencapaian KPI dan OKR antar divisi, serta meningkatkan employee engagement.",
+  "hardRequirements": {
+    "mandatorySkills": {
+      "items": [
+        "People Development",
+        "Training Need Analysis"
+      ],
+      "rule": "min_n",
+      "minCount": 1
+    },
+    "minGpa": 3.2,
+    "allowedMajors": [
+      "Psikologi",
+      "Manajemen SDM",
+      "Manajemen",
+      "Teknik Industri",
+      "Administrasi Bisnis",
+      "Pendidikan"
+    ]
+  },
+  "additionalSkills": [
+    "KPI",
+    "OKR",
+    "Training Needs Analysis",
+    "Pelatihan",
+    "Employee Engagement",
+    "Kirkpatrick",
+    "SOP",
+    "Performance Appraisal",
+    "Google Forms"
+  ],
+  "categories": {
+    "experience": {
+      "label": "Pengalaman Pelatihan & OD",
+      "weight": 35,
+      "active": true
+    },
+    "projects": {
+      "label": "Project / Modul Pelatihan",
+      "weight": 25,
+      "active": true
+    },
+    "cert_edu": {
+      "label": "Sertifikasi & Pendidikan",
+      "weight": 20,
+      "active": true
+    },
+    "competencies": {
+      "label": "Kompetensi",
+      "weight": 20,
+      "active": true
+    }
+  },
+  "thresholds": {
+    "durationMonths": 6,
+    "projectsCount": 2
+  }
+}

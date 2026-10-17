@@ -1,0 +1,78 @@
+{
+  "version": "1.0",
+  "division": "Social Media Strategist",
+  "divisionAliases": [
+    "social media strategist",
+    "social media strategiest",
+    "sosmed",
+    "social media",
+    "sosial media",
+    "social media specialist",
+    "digital marketing",
+    "social media officer"
+  ],
+  "title": "Social Media Strategist & Planner Intern",
+  "jd": "Merancang strategi pertumbuhan media sosial (Instagram, TikTok, LinkedIn, Twitter/X), menyusun content calendar dan pilar konten bulanan, menganalisis performa metrik analitik (engagement rate, impressions, follower growth, CTR), melakukan riset tren algoritma terbaru, serta mengeksekusi strategi copywriting interaktif untuk meningkatkan engagement komunitas.",
+  "hardRequirements": {
+    "mandatorySkills": {
+      "items": [
+        "Copywriting",
+        "Social Media Management",
+        "Analytics"
+      ],
+      "rule": "min_n",
+      "minCount": 2
+    },
+    "minGpa": 3.15,
+    "allowedMajors": [
+      "Ilmu Komunikasi",
+      "Pemasaran",
+      "Manajemen",
+      "Hubungan Masyarakat",
+      "Jurnalistik",
+      "Sastra",
+      "Administrasi Bisnis"
+    ]
+  },
+  "additionalSkills": [
+    "Instagram Analytics",
+    "TikTok Analytics",
+    "Content Strategy",
+    "Content Calendar",
+    "Engagement Rate",
+    "Copywriting",
+    "Canva",
+    "Social Media Marketing",
+    "Storytelling"
+  ],
+  "categories": {
+    "projects": {
+      "label": "Portofolio Campaign & Konten",
+      "weight": 35,
+      "active": true
+    },
+    "experience": {
+      "label": "Pengalaman Media Sosial",
+      "weight": 30,
+      "active": true
+    },
+    "competencies": {
+      "label": "Kompetensi Strategi & Analitik",
+      "weight": 25,
+      "active": true
+    },
+    "cert_edu": {
+      "label": "Sertifikasi & Pendidikan",
+      "weight": 10,
+      "active": true
+    }
+  },
+  "thresholds": {
+    "durationMonths": 6,
+    "projectsCount": 3
+  },
+  "customSectionHeadings": [
+    "Konten",
+    "Portofolio Media Sosial"
+  ]
+}

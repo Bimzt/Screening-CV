@@ -1,0 +1,75 @@
+{
+  "version": "1.0",
+  "division": "Event Management",
+  "divisionAliases": [
+    "event management",
+    "event planner",
+    "event organizer",
+    "eo",
+    "em",
+    "event coordinator",
+    "manajemen event",
+    "event intern"
+  ],
+  "title": "Event Management & Production Intern",
+  "jd": "Merencanakan dan mengeksekusi rangkaian event online (webinar, workshop) dan offline secara end-to-end, menyusun rundown acara dan teknis pelaksanaan, mengoordinasikan narasumber/speaker dan vendor, memimpin gladi bersih teknis, mengelola registrasi peserta via Google Form/platform tiket, serta melakukan evaluasi feedback pasca-acara guna mencapai target kepuasan peserta.",
+  "hardRequirements": {
+    "mandatorySkills": {
+      "items": [
+        "Event Management",
+        "Rundown",
+        "Kepanitiaan"
+      ],
+      "rule": "min_n",
+      "minCount": 2
+    },
+    "minGpa": 3.1,
+    "allowedMajors": [
+      "Ilmu Komunikasi",
+      "Hubungan Masyarakat",
+      "Public Relations",
+      "Manajemen",
+      "Pariwisata",
+      "Desain Komunikasi Visual",
+      "Broadcasting",
+      "Administrasi Bisnis"
+    ]
+  },
+  "additionalSkills": [
+    "Zoom Webinar",
+    "Moderator",
+    "Koordinasi Vendor",
+    "Budgeting Event",
+    "Google Forms",
+    "Ticketing",
+    "Problem Solving",
+    "Time Management",
+    "Technical Meeting"
+  ],
+  "categories": {
+    "experience": {
+      "label": "Pengalaman Kepanitiaan & Event",
+      "weight": 40,
+      "active": true
+    },
+    "projects": {
+      "label": "Project / Portofolio Acara",
+      "weight": 25,
+      "active": true
+    },
+    "cert_edu": {
+      "label": "Sertifikasi & Pendidikan",
+      "weight": 15,
+      "active": true
+    },
+    "competencies": {
+      "label": "Kompetensi",
+      "weight": 20,
+      "active": true
+    }
+  },
+  "thresholds": {
+    "durationMonths": 12,
+    "projectsCount": 3
+  }
+}

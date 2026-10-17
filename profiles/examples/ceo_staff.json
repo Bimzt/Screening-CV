@@ -1,0 +1,74 @@
+{
+  "version": "1.0",
+  "division": "CEO Staff",
+  "divisionAliases": [
+    "ceo staff",
+    "ceo",
+    "chief executive officer staff",
+    "executive assistant",
+    "staff ceo",
+    "ea",
+    "sekretaris eksekutif",
+    "business executive"
+  ],
+  "title": "CEO Staff / Executive Assistant Intern",
+  "jd": "Mendukung operasional harian CEO, menyusun riset industri dan ringkasan eksekutif bisnis, mengoordinasikan rapat strategis tingkat direksi, menyusun materi presentasi eksekutif (pitch deck / business review), serta mengawal tindak lanjut rencana aksi strategis antar divisi perusahaan.",
+  "hardRequirements": {
+    "mandatorySkills": {
+      "items": [
+        "Komunikasi",
+        "Problem Solving"
+      ],
+      "rule": "all"
+    },
+    "minGpa": 3.3,
+    "allowedMajors": [
+      "Manajemen",
+      "Bisnis",
+      "Ilmu Komunikasi",
+      "Hubungan Internasional",
+      "Administrasi Bisnis",
+      "Administrasi Publik",
+      "Ekonomi",
+      "Teknik Industri",
+      "Hukum"
+    ]
+  },
+  "additionalSkills": [
+    "Executive Assistant",
+    "PowerPoint",
+    "Pitch Deck",
+    "Notulen",
+    "Riset Pasar",
+    "Project Management",
+    "Kepemimpinan",
+    "Business Strategy",
+    "English"
+  ],
+  "categories": {
+    "experience": {
+      "label": "Pengalaman",
+      "weight": 35,
+      "active": true
+    },
+    "projects": {
+      "label": "Project / Dokumen Riset",
+      "weight": 25,
+      "active": true
+    },
+    "cert_edu": {
+      "label": "Sertifikasi & Pendidikan",
+      "weight": 20,
+      "active": true
+    },
+    "competencies": {
+      "label": "Kompetensi",
+      "weight": 20,
+      "active": true
+    }
+  },
+  "thresholds": {
+    "durationMonths": 12,
+    "projectsCount": 2
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "version": "1.0",
+  "division": "HR TA",
+  "divisionAliases": [
+    "hr ta",
+    "hrta",
+    "talent acquisition",
+    "recruiter",
+    "recruitment",
+    "hr recruitment",
+    "ta intern",
+    "recruitment intern"
+  ],
+  "title": "HR Talent Acquisition Intern",
+  "jd": "Melakukan proses rekrutmen end-to-end mulai dari posting lowongan kerja di job portal, screening CV ratusan kandidat pelamar, scheduling dan conducting behavioral interview, administrasi psikotes, hingga koordinasi offering letter dan welcoming onboarding.",
+  "hardRequirements": {
+    "mandatorySkills": {
+      "items": [
+        "Recruitment",
+        "Screening CV"
+      ],
+      "rule": "all"
+    },
+    "minGpa": 3.15,
+    "allowedMajors": [
+      "Psikologi",
+      "Manajemen SDM",
+      "Manajemen",
+      "Ilmu Komunikasi",
+      "Hukum",
+      "Administrasi Bisnis"
+    ]
+  },
+  "additionalSkills": [
+    "Interview",
+    "Psikotes",
+    "Onboarding",
+    "Job Portal",
+    "LinkedIn Recruiter",
+    "Komunikasi",
+    "Google Sheets",
+    "Applicant Tracking System"
+  ],
+  "categories": {
+    "experience": {
+      "label": "Pengalaman Rekrutmen & Organisasi",
+      "weight": 35,
+      "active": true
+    },
+    "projects": {
+      "label": "Project / Portofolio HR",
+      "weight": 25,
+      "active": true
+    },
+    "cert_edu": {
+      "label": "Sertifikasi & Pendidikan",
+      "weight": 20,
+      "active": true
+    },
+    "competencies": {
+      "label": "Kompetensi",
+      "weight": 20,
+      "active": true
+    }
+  },
+  "thresholds": {
+    "durationMonths": 6,
+    "projectsCount": 2
+  }
+}

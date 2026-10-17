@@ -1,0 +1,82 @@
+{
+  "version": "1.0",
+  "division": "Graphic Design",
+  "divisionAliases": [
+    "graphic design",
+    "grapich design",
+    "desain grafis",
+    "gd",
+    "graphic designer",
+    "ui designer",
+    "visual designer",
+    "desainer grafis"
+  ],
+  "title": "Graphic Design & Visual Brand Intern",
+  "jd": "Menciptakan aset visual dan desain grafis promosi yang memukau dan konsisten dengan panduan merek (brand guidelines) untuk kebutuhan media sosial, iklan digital, banner event, presentasi, dan materi cetak. Mahir mengoperasikan Adobe Illustrator, Adobe Photoshop, Figma, dan Canva secara profesional.",
+  "hardRequirements": {
+    "mandatorySkills": {
+      "items": [
+        "Photoshop",
+        "Illustrator",
+        "Figma",
+        "Canva"
+      ],
+      "rule": "min_n",
+      "minCount": 2
+    },
+    "minGpa": 3.0,
+    "allowedMajors": [
+      "Desain Komunikasi Visual",
+      "DKV",
+      "Desain Grafis",
+      "Desain Produk",
+      "Seni Rupa",
+      "Multimedia",
+      "Teknik Informatika",
+      "Ilmu Komunikasi"
+    ]
+  },
+  "additionalSkills": [
+    "Adobe Illustrator",
+    "Adobe Photoshop",
+    "Figma",
+    "Canva",
+    "Typography",
+    "Color Theory",
+    "Layouting",
+    "Branding",
+    "UI/UX",
+    "Portofolio"
+  ],
+  "categories": {
+    "projects": {
+      "label": "Portofolio Visual & Desain",
+      "weight": 45,
+      "active": true
+    },
+    "experience": {
+      "label": "Pengalaman Desain & Kreatif",
+      "weight": 25,
+      "active": true
+    },
+    "competencies": {
+      "label": "Kompetensi Software Desain",
+      "weight": 20,
+      "active": true
+    },
+    "cert_edu": {
+      "label": "Sertifikasi & Pendidikan",
+      "weight": 10,
+      "active": true
+    }
+  },
+  "thresholds": {
+    "durationMonths": 6,
+    "projectsCount": 3
+  },
+  "customSectionHeadings": [
+    "Portofolio Desain",
+    "Karya Visual",
+    "Graphic Portfolio"
+  ]
+}

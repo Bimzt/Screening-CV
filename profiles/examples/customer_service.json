@@ -1,0 +1,76 @@
+{
+  "version": "1.0",
+  "division": "Customer Services",
+  "divisionAliases": [
+    "customer services",
+    "customer service",
+    "cusomer services",
+    "cs",
+    "client support",
+    "customer care",
+    "helpdesk",
+    "contact center",
+    "cs intern"
+  ],
+  "title": "Customer Services & Client Care Intern",
+  "jd": "Menangani interaksi dan pertanyaan pelanggan via WhatsApp Business, email, dan direct message secara responsif, ramah, dan solutif. Menyelesaikan kendala atau keluhan klien (handling complaint) dengan empati, mendokumentasikan log tiket pertanyaan ke Google Sheets/CRM, serta berkoordinasi dengan tim teknis guna memastikan kepuasan pelanggan.",
+  "hardRequirements": {
+    "mandatorySkills": {
+      "items": [
+        "Customer Service",
+        "Komunikasi",
+        "Handling Complaint"
+      ],
+      "rule": "min_n",
+      "minCount": 2
+    },
+    "minGpa": 3.1,
+    "allowedMajors": [
+      "Ilmu Komunikasi",
+      "Hubungan Masyarakat",
+      "Manajemen",
+      "Sastra Inggris",
+      "Bahasa",
+      "Administrasi Publik",
+      "Psikologi",
+      "Administrasi Bisnis"
+    ]
+  },
+  "additionalSkills": [
+    "WhatsApp Business",
+    "Problem Solving",
+    "CRM",
+    "Email Handling",
+    "Fast Responding",
+    "Google Sheets",
+    "Empati",
+    "Service Excellence",
+    "Zendesk"
+  ],
+  "categories": {
+    "experience": {
+      "label": "Pengalaman Layanan / Organisasi",
+      "weight": 35,
+      "active": true
+    },
+    "projects": {
+      "label": "Project / Penanganan Kasus",
+      "weight": 20,
+      "active": true
+    },
+    "cert_edu": {
+      "label": "Sertifikasi & Pendidikan",
+      "weight": 15,
+      "active": true
+    },
+    "competencies": {
+      "label": "Kompetensi",
+      "weight": 30,
+      "active": true
+    }
+  },
+  "thresholds": {
+    "durationMonths": 6,
+    "projectsCount": 2
+  }
+}

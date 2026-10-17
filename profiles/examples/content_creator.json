@@ -1,0 +1,81 @@
+{
+  "version": "1.0",
+  "division": "Content Creator",
+  "divisionAliases": [
+    "content creator",
+    "konten kreator",
+    "cc",
+    "content creation",
+    "tiktok creator",
+    "reels creator",
+    "creator video",
+    "video producer"
+  ],
+  "title": "Content Creator & Video Producer Intern",
+  "jd": "Mengonsep dan memproduksi konten video kreatif pendek untuk platform TikTok, Instagram Reels, dan YouTube Shorts. Menguasai alur produksi mulai dari scriptwriting/storytelling naskah edukatif, percaya diri tampil di depan kamera sebagai talent/host, hingga shooting dan editing video dinamis dengan CapCut atau Adobe Premiere Pro.",
+  "hardRequirements": {
+    "mandatorySkills": {
+      "items": [
+        "Video Editing",
+        "CapCut",
+        "Scriptwriting"
+      ],
+      "rule": "min_n",
+      "minCount": 2
+    },
+    "minGpa": 3.0,
+    "allowedMajors": [
+      "Ilmu Komunikasi",
+      "Broadcasting",
+      "Desain Komunikasi Visual",
+      "DKV",
+      "Perfilman",
+      "Jurnalistik",
+      "Sastra",
+      "Pemasaran"
+    ]
+  },
+  "additionalSkills": [
+    "TikTok",
+    "Instagram Reels",
+    "Adobe Premiere",
+    "Storytelling",
+    "Content Creation",
+    "Voice Over",
+    "Lighting",
+    "CapCut",
+    "YouTube",
+    "Canva"
+  ],
+  "categories": {
+    "projects": {
+      "label": "Portofolio Video & Konten",
+      "weight": 40,
+      "active": true
+    },
+    "experience": {
+      "label": "Pengalaman Produksi Konten",
+      "weight": 25,
+      "active": true
+    },
+    "competencies": {
+      "label": "Kompetensi Kreatif & Editing",
+      "weight": 25,
+      "active": true
+    },
+    "cert_edu": {
+      "label": "Sertifikasi & Pendidikan",
+      "weight": 10,
+      "active": true
+    }
+  },
+  "thresholds": {
+    "durationMonths": 6,
+    "projectsCount": 3
+  },
+  "customSectionHeadings": [
+    "Portofolio Video",
+    "Karya Konten",
+    "Content Creation"
+  ]
+}

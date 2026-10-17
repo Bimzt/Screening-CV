@@ -1,0 +1,73 @@
+{
+  "version": "1.0",
+  "division": "Data Analyst",
+  "divisionAliases": [
+    "data analyst",
+    "da",
+    "data",
+    "business intelligence",
+    "bi",
+    "data science",
+    "data science intern",
+    "data scientist"
+  ],
+  "title": "Data Analyst Intern / Fresh Graduate",
+  "jd": "Menganalisis data kuantitatif, menyusun query SQL kompleks, membersihkan data dengan Python atau Pandas, merancang dashboard interaktif dengan Tableau, Power BI, Looker Studio, atau Excel, serta menyajikan insight data bisnis kepada stakeholder.",
+  "hardRequirements": {
+    "mandatorySkills": {
+      "items": [
+        "SQL",
+        "Excel"
+      ],
+      "rule": "all"
+    },
+    "minGpa": 3.2,
+    "allowedMajors": [
+      "Sains Data",
+      "Data Science",
+      "Teknik Informatika",
+      "Sistem Informasi",
+      "Statistika",
+      "Matematika",
+      "Ilmu Komputer",
+      "Teknik Industri"
+    ]
+  },
+  "additionalSkills": [
+    "Python",
+    "Tableau",
+    "Power BI",
+    "Pandas",
+    "Looker Studio",
+    "ETL",
+    "Statistics",
+    "Machine Learning",
+    "Data Visualization"
+  ],
+  "categories": {
+    "experience": {
+      "label": "Pengalaman",
+      "weight": 35,
+      "active": true
+    },
+    "projects": {
+      "label": "Project / Portofolio Data",
+      "weight": 30,
+      "active": true
+    },
+    "cert_edu": {
+      "label": "Sertifikasi & Pendidikan",
+      "weight": 20,
+      "active": true
+    },
+    "competencies": {
+      "label": "Kompetensi",
+      "weight": 15,
+      "active": true
+    }
+  },
+  "thresholds": {
+    "durationMonths": 12,
+    "projectsCount": 3
+  }
+}
