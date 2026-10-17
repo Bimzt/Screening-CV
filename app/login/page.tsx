@@ -57,9 +57,6 @@ function LoginForm() {
         <h1 className="text-2xl font-bold tracking-tight text-white">
           CV Screener
         </h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Soko Financial &bull; Akses Tim Rekrutmen
-        </p>
       </div>
 
       {error && (
@@ -75,7 +72,7 @@ function LoginForm() {
             htmlFor="password"
             className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2"
           >
-            Password Tim
+            Password
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -87,14 +84,11 @@ function LoginForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Masukkan password bersama..."
+              placeholder="Masukkan password..."
               disabled={loading}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors text-sm"
             />
           </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Satu password bersama untuk tim rekrutmen Soko Financial.
-          </p>
         </div>
 
         <button
@@ -112,12 +106,6 @@ function LoginForm() {
           )}
         </button>
       </form>
-
-      <div className="mt-8 pt-6 border-t border-slate-800/80 text-center">
-        <p className="text-xs text-slate-500">
-          Sesi aman berlaku selama 8 jam &bull; Data pelamar dirahasiakan
-        </p>
-      </div>
     </div>
   );
 }

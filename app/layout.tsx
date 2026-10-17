@@ -7,8 +7,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CV Screener | Soko Financial",
-  description: "Aplikasi internal penyaringan dan pemeringkatan CV tim rekrutmen Soko Financial",
+  title: "Are You The Choosen?"
 };
 
 export default function RootLayout({
