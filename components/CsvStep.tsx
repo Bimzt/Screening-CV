@@ -6,6 +6,7 @@ import {
   parseCsvText,
   autoDetectColumns,
   processRawCsvRows,
+  matchDivisionToProfile,
   CsvColumnMapping,
   RawCsvRow,
 } from "@/lib/csv";
@@ -247,7 +248,7 @@ export default function CsvStep({
 
             <div>
               <label className="block text-slate-400 mb-1 font-semibold">
-                Kolom Pilihan Divisi (Utama / 1) <span className="text-red-400">*</span>
+                Kolom Divisi Pilihan 1 (Utama) <span className="text-red-400">*</span>
               </label>
               <select
                 value={columnMapping.divisionCol || ""}
@@ -262,20 +263,30 @@ export default function CsvStep({
             </div>
 
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">
-                Kolom Pilihan Divisi 2 (Opsional)
+              <label className="block text-slate-400 mb-1 font-semibold flex items-center justify-between">
+                <span>Kolom Divisi Pilihan 2 (Alternatif)</span>
+                <span className="text-[10px] text-indigo-400 font-normal">Ikut Dinilai</span>
               </label>
               <select
                 value={columnMapping.divisionCol2 || ""}
                 onChange={(e) => setColumnMapping({ ...columnMapping, divisionCol2: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="">-- Lewati jika hanya 1 kolom --</option>
+                <option value="">-- Lewati jika hanya 1 kolom pilihan --</option>
                 {rawHeaders.map((h) => (
                   <option key={h} value={h}>{h}</option>
                 ))}
               </select>
             </div>
+
+            {columnMapping.divisionCol2 && (
+              <div className="col-span-full p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-300 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  <strong>Mode Penilaian Ganda (Pilihan 1 & 2) Aktif:</strong> Pelamar akan dinilai dan diranking di kedua divisi sekaligus, lengkap dengan analisis komparasi rekomendasi kecocokan.
+                </span>
+              </div>
+            )}
 
             <div>
               <label className="block text-slate-400 mb-1 font-semibold">
@@ -362,8 +373,7 @@ export default function CsvStep({
                 {uniqueRawDivisions.map((token) => {
                   const mapped =
                     manualDivisionOverrides[token] ||
-                    calculationResult.processedRows.find((r) => r.rawDivision.includes(token))
-                      ?.divisionChoices[0] ||
+                    matchDivisionToProfile(token, profiles) ||
                     "";
                   const count = calculationResult.processedRows.filter((r) =>
                     r.rawDivision.includes(token)

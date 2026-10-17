@@ -147,5 +147,101 @@ def test_batch_ranking_and_excel_export():
     assert "Ringkasan Lowongan" in sheet_names
 
     ws_rank = wb["Ranking"]
-    assert ws_rank.cell(row=2, column=3).value == "Kandidat A"
     assert ws_rank.cell(row=2, column=1).value == "Data Analyst"
+    assert ws_rank.cell(row=2, column=3).value == "Pilihan 1"
+    assert ws_rank.cell(row=2, column=4).value == "Kandidat A"
+    assert "Perbandingan Pilihan 1 & 2" in sheet_names
+
+
+def test_dual_choice_ranking_and_recommendation():
+    """
+    Menguji bahwa kandidat dengan 2 pilihan dinilai di kedua divisi dan menghasilkan
+    rekomendasi komparatif yang tepat.
+    """
+    profile_p1 = {
+        "division": "Data Analyst",
+        "title": "Data Analyst",
+        "jd": "SQL, Python, data analytics, tableau.",
+        "categories": {
+            "experience": {"label": "Pengalaman", "weight": 50, "active": True},
+            "projects": {"label": "Project", "weight": 50, "active": True},
+        },
+        "thresholds": {"durationMonths": 12, "projectsCount": 2},
+    }
+    profile_p2 = {
+        "division": "Graphic Designer",
+        "title": "Graphic Designer",
+        "jd": "Figma, Adobe Illustrator, Photoshop, visual design, branding.",
+        "categories": {
+            "experience": {"label": "Pengalaman", "weight": 50, "active": True},
+            "projects": {"label": "Project", "weight": 50, "active": True},
+        },
+        "thresholds": {"durationMonths": 12, "projectsCount": 2},
+    }
+
+    # Kandidat melamar Pilihan 1: Data Analyst, Pilihan 2: Graphic Designer
+    # CV memuat banyak portofolio desain visual & Figma
+    cand = {
+        "fileId": "cand_dual_1",
+        "candidateName": "Bima Arya",
+        "divisionChoices": ["Data Analyst", "Graphic Designer"],
+        "fields": {
+            "name": "Bima Arya",
+            "email": "bima@example.com",
+            "phone": "08123456789",
+            "university": "Universitas Indonesia",
+            "major": "Desain Komunikasi Visual",
+            "gpa": 3.75,
+            "portfolioLinks": ["https://behance.net/bima"],
+            "experiences": [{"title": "Graphic Design Intern", "durationMonths": 14, "type": "kerja/magang"}],
+            "projects": [{"title": "Branding Campaign"}, {"title": "UI Kit Redesign"}],
+            "certifications": ["Adobe Certified Professional"],
+        },
+        "sections": {
+            "experience": "Graphic Designer di agency, mahir Figma, Adobe Illustrator, Photoshop.",
+            "projects": "Redesign UI dan branding campaign visual.",
+            "skills": "Figma, Illustrator, Photoshop, Branding, Visual Design",
+        },
+        "fieldStatus": {},
+        "flags": [],
+        "isScanPdf": False,
+    }
+
+    profiles_map = {
+        "Data Analyst": profile_p1,
+        "Graphic Designer": profile_p2,
+    }
+
+    res = rank_candidates_for_batch([cand], profiles_map)
+    assert "Data Analyst" in res["divisionResults"]
+    assert "Graphic Designer" in res["divisionResults"]
+
+    c_da = res["divisionResults"]["Data Analyst"][0]
+    c_gd = res["divisionResults"]["Graphic Designer"][0]
+
+    # Pastikan metadata pilihan terpasang
+    assert c_da["choiceRank"] == 1
+    assert c_da["isFirstChoice"] is True
+    assert c_gd["choiceRank"] == 2
+    assert c_gd["isFirstChoice"] is False
+
+    # Pastikan kedua hasil saling terhubung
+    assert c_da["choice1Result"]["division"] == "Data Analyst"
+    assert c_da["choice2Result"]["division"] == "Graphic Designer"
+    assert c_gd["choice1Result"]["division"] == "Data Analyst"
+    assert c_gd["choice2Result"]["division"] == "Graphic Designer"
+
+    # Kandidat memiliki portofolio DKV / Figma kuat, sehingga skor di Graphic Designer > Data Analyst
+    assert c_gd["finalScore"] > c_da["finalScore"]
+    assert c_da["bestFitChoice"] == 2
+    assert "Pilihan 2" in c_da["recommendationNote"]
+
+    # Verifikasi pembuatan berkas Excel
+    excel_bytes = generate_screening_excel(res, profiles_map)
+    wb = load_workbook(io.BytesIO(excel_bytes))
+    ws_comp = wb["Perbandingan Pilihan 1 & 2"]
+    assert ws_comp.cell(row=2, column=2).value == "Bima Arya"
+    assert ws_comp.cell(row=2, column=8).value == "Data Analyst"
+    assert ws_comp.cell(row=2, column=11).value == "Graphic Designer"
+    assert ws_comp.cell(row=2, column=14).value == "Pilihan 2"
+

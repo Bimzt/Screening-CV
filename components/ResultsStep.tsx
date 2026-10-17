@@ -40,6 +40,7 @@ export default function ResultsStep({
     divisions[0] || "Semua"
   );
   const [statusFilter, setStatusFilter] = useState<string>("Semua");
+  const [choiceFilter, setChoiceFilter] = useState<"Semua" | "Pilihan 1" | "Pilihan 2">("Semua");
   const [activeTab, setActiveTab] = useState<"ranking" | "review">("ranking");
   const [expandedCandidateId, setExpandedCandidateId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -48,8 +49,10 @@ export default function ResultsStep({
   const currentCandidates = (
     rankingData.divisionResults[selectedDivision] || []
   ).filter((c) => {
-    if (statusFilter === "Semua") return true;
-    return c.hardRequirementStatus === statusFilter;
+    if (statusFilter !== "Semua" && c.hardRequirementStatus !== statusFilter) return false;
+    if (choiceFilter === "Pilihan 1" && c.choiceRank !== 1) return false;
+    if (choiceFilter === "Pilihan 2" && c.choiceRank !== 2) return false;
+    return true;
   });
 
   const handleDownloadExcel = async () => {
@@ -197,21 +200,41 @@ export default function ResultsStep({
               ))}
             </div>
 
-            {/* Status Filter */}
-            <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 self-start">
-              {["Semua", "Memenuhi", "Perlu dicek", "Tidak memenuhi"].map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
-                  className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer text-[11px] ${
-                    statusFilter === st
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {st}
-                </button>
-              ))}
+            {/* Filter Buttons */}
+            <div className="flex flex-wrap items-center gap-2 self-start">
+              {/* Choice Filter */}
+              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                {(["Semua", "Pilihan 1", "Pilihan 2"] as const).map((ch) => (
+                  <button
+                    key={ch}
+                    onClick={() => setChoiceFilter(ch)}
+                    className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer text-[11px] ${
+                      choiceFilter === ch
+                        ? "bg-purple-600/30 text-purple-300 font-bold"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {ch}
+                  </button>
+                ))}
+              </div>
+
+              {/* Status Filter */}
+              <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                {["Semua", "Memenuhi", "Perlu dicek", "Tidak memenuhi"].map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setStatusFilter(st)}
+                    className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer text-[11px] ${
+                      statusFilter === st
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -274,13 +297,39 @@ export default function ResultsStep({
                               #{cand.rank}
                             </td>
                             <td className="py-3 px-4">
-                              <div className="font-semibold text-white">{cand.name}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-white">{cand.name}</span>
+                                {cand.choiceRank === 2 ? (
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">
+                                    Pilihan 2
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+                                    Pilihan 1
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-[11px] text-slate-400">{cand.email || "-"}</div>
-                              {cand.multiDivisionNote && (
+                              {cand.choice1Result && cand.choice2Result ? (
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+                                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
+                                    P1: {cand.choice1Result.division} ({cand.choice1Result.finalScore.toFixed(1)})
+                                  </span>
+                                  <span className="text-slate-500">&bull;</span>
+                                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
+                                    P2: {cand.choice2Result.division} ({cand.choice2Result.finalScore.toFixed(1)})
+                                  </span>
+                                  {cand.bestFitChoice === 2 && (
+                                    <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
+                                      ⭐ Lebih Cocok di P2
+                                    </span>
+                                  )}
+                                </div>
+                              ) : cand.multiDivisionNote ? (
                                 <div className="text-[10px] text-indigo-400 font-medium mt-0.5">
                                   {cand.multiDivisionNote}
                                 </div>
-                              )}
+                              ) : null}
                             </td>
                             <td className="py-3 px-4">
                               <div className="text-slate-300">{cand.university || "-"}</div>
@@ -317,6 +366,83 @@ export default function ResultsStep({
                           {isExpanded && (
                             <tr className="bg-slate-950/70">
                               <td colSpan={8} className="p-4 space-y-3 border-t border-slate-800">
+                                {/* Dual Choice Comparison Card */}
+                                {cand.choice1Result && cand.choice2Result && (
+                                  <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-3 mb-2">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                                        <Briefcase className="w-4 h-4 text-indigo-400" />
+                                        Komparasi Hasil: Pilihan 1 vs Pilihan 2
+                                      </span>
+                                      {cand.bestFitChoice === 2 ? (
+                                        <span className="text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full self-start">
+                                          💡 Rekomendasi: Lebih Unggul di Pilihan 2 ({cand.choice2Result.division})
+                                        </span>
+                                      ) : (
+                                        <span className="text-[11px] font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full self-start">
+                                          ✓ Rekomendasi: Sesuai di Pilihan 1 ({cand.choice1Result.division})
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                      {/* Card Pilihan 1 */}
+                                      <div className={`p-3 rounded-xl border ${cand.choiceRank === 1 ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-slate-800 bg-slate-950/40'}`}>
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="font-bold text-white flex items-center gap-1.5">
+                                            <span className="w-4 h-4 rounded-full bg-indigo-600/30 text-indigo-300 flex items-center justify-center text-[10px]">1</span>
+                                            {cand.choice1Result.division}
+                                          </span>
+                                          <span className="font-mono font-bold text-indigo-400 text-sm">
+                                            {cand.choice1Result.finalScore.toFixed(1)}
+                                          </span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-400 mb-2">
+                                          Status Syarat Wajib: <span className="font-semibold text-slate-200">{cand.choice1Result.hardRequirementStatus}</span>
+                                        </div>
+                                        {cand.choice1Result.categoryScores && (
+                                          <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-400">
+                                            <div>Pengalaman: {cand.choice1Result.categoryScores.experience ?? "-"}</div>
+                                            <div>Project: {cand.choice1Result.categoryScores.projects ?? "-"}</div>
+                                            <div>Sert & Pend: {cand.choice1Result.categoryScores.cert_edu ?? "-"}</div>
+                                            <div>Kompetensi: {cand.choice1Result.categoryScores.competencies ?? "-"}</div>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Card Pilihan 2 */}
+                                      <div className={`p-3 rounded-xl border ${cand.choiceRank === 2 ? 'border-purple-500/50 bg-purple-950/20' : 'border-slate-800 bg-slate-950/40'}`}>
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="font-bold text-white flex items-center gap-1.5">
+                                            <span className="w-4 h-4 rounded-full bg-purple-600/30 text-purple-300 flex items-center justify-center text-[10px]">2</span>
+                                            {cand.choice2Result.division}
+                                          </span>
+                                          <span className="font-mono font-bold text-purple-400 text-sm">
+                                            {cand.choice2Result.finalScore.toFixed(1)}
+                                          </span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-400 mb-2">
+                                          Status Syarat Wajib: <span className="font-semibold text-slate-200">{cand.choice2Result.hardRequirementStatus}</span>
+                                        </div>
+                                        {cand.choice2Result.categoryScores && (
+                                          <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-400">
+                                            <div>Pengalaman: {cand.choice2Result.categoryScores.experience ?? "-"}</div>
+                                            <div>Project: {cand.choice2Result.categoryScores.projects ?? "-"}</div>
+                                            <div>Sert & Pend: {cand.choice2Result.categoryScores.cert_edu ?? "-"}</div>
+                                            <div>Kompetensi: {cand.choice2Result.categoryScores.competencies ?? "-"}</div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {cand.recommendationNote && (
+                                      <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300">
+                                        <strong className="text-indigo-400">Catatan Komparasi: </strong>
+                                        {cand.recommendationNote}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                                   <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
                                     <span className="text-slate-400 block text-[10px] mb-0.5">

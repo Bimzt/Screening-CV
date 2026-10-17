@@ -104,6 +104,15 @@ export type HardReqStatus =
   | "Perlu dicek"
   | "Tidak ada syarat wajib";
 
+export interface ChoiceEvaluationSummary {
+  division: string;
+  rank?: number;
+  finalScore: number;
+  hardRequirementStatus: HardReqStatus;
+  categoryScores?: Record<string, number>;
+  reasons?: string;
+}
+
 export interface RankedCandidate {
   division: string;
   rank: number;
@@ -128,6 +137,14 @@ export interface RankedCandidate {
   flags: string[];
   driveLink?: string;
   multiDivisionNote?: string;
+  choiceRank?: number;
+  isFirstChoice?: boolean;
+  pilihan1?: string;
+  pilihan2?: string;
+  choice1Result?: ChoiceEvaluationSummary;
+  choice2Result?: ChoiceEvaluationSummary;
+  bestFitChoice?: 1 | 2 | "equal";
+  recommendationNote?: string;
 }
 
 export interface ReviewItem {

@@ -461,6 +461,7 @@ def rank_candidates_for_batch(
                 "flags": cand.get("flags", []),
                 "driveLink": cand.get("driveLink"),
                 "multiDivisionNote": multi_div_note,
+                "divisionChoices": cand.get("divisionChoices", []),
             }
             ranked_list.append(ranked_item)
 
@@ -482,6 +483,94 @@ def rank_candidates_for_batch(
             item["rank"] = rank_num
 
         results_by_division[div_name] = ranked_list
+
+    # -------------------------------------------------------------
+    # Pass 2: Evaluasi & Perbandingan Lintas Pilihan (Pilihan 1 vs Pilihan 2)
+    # -------------------------------------------------------------
+    evals_by_candidate = {}
+    for div_k, cand_list in results_by_division.items():
+        for item in cand_list:
+            cand_key = item.get("fileId") or item.get("email") or str(item.get("sourceRowIndex"))
+            if cand_key not in evals_by_candidate:
+                evals_by_candidate[cand_key] = {}
+            evals_by_candidate[cand_key][div_k] = item
+
+    for div_k, cand_list in results_by_division.items():
+        for item in cand_list:
+            cand_key = item.get("fileId") or item.get("email") or str(item.get("sourceRowIndex"))
+            cand_map = evals_by_candidate.get(cand_key, {})
+            choices = item.get("divisionChoices", [])
+            
+            p1_name = choices[0] if len(choices) > 0 else div_k
+            p2_name = choices[1] if len(choices) > 1 else None
+
+            item["pilihan1"] = p1_name
+            item["pilihan2"] = p2_name
+            item["choiceRank"] = 1 if div_k == p1_name else (2 if div_k == p2_name else 1)
+            item["isFirstChoice"] = (div_k == p1_name)
+
+            c1 = cand_map.get(p1_name)
+            c2 = cand_map.get(p2_name) if p2_name else None
+
+            if c1:
+                item["choice1Result"] = {
+                    "division": p1_name,
+                    "rank": c1.get("rank"),
+                    "finalScore": c1.get("finalScore", 0.0),
+                    "hardRequirementStatus": c1.get("hardRequirementStatus", ""),
+                    "categoryScores": c1.get("categoryScores", {}),
+                    "reasons": c1.get("reasons", ""),
+                }
+            if c2:
+                item["choice2Result"] = {
+                    "division": p2_name,
+                    "rank": c2.get("rank"),
+                    "finalScore": c2.get("finalScore", 0.0),
+                    "hardRequirementStatus": c2.get("hardRequirementStatus", ""),
+                    "categoryScores": c2.get("categoryScores", {}),
+                    "reasons": c2.get("reasons", ""),
+                }
+
+            # Analisis Perbandingan & Rekomendasi
+            if c1 and c2:
+                s1 = c1.get("finalScore", 0.0)
+                s2 = c2.get("finalScore", 0.0)
+                st1 = c1.get("hardRequirementStatus", "")
+                st2 = c2.get("hardRequirementStatus", "")
+
+                prio1 = 1 if st1 in ["Memenuhi", "Tidak ada syarat wajib"] else (2 if st1 == "Perlu dicek" else 3)
+                prio2 = 1 if st2 in ["Memenuhi", "Tidak ada syarat wajib"] else (2 if st2 == "Perlu dicek" else 3)
+
+                if prio2 < prio1:
+                    item["bestFitChoice"] = 2
+                    rec = f"⚠️ Lebih direkomendasikan di Pilihan 2 ({p2_name}): Status '{st2}' & Skor {s2} (Pilihan 1 '{p1_name}': '{st1}', Skor {s1})"
+                elif prio1 < prio2:
+                    item["bestFitChoice"] = 1
+                    rec = f"Direkomendasikan di Pilihan 1 ({p1_name}): Status '{st1}' & Skor {s1} (Pilihan 2 '{p2_name}': '{st2}', Skor {s2})"
+                else:
+                    diff = round(s2 - s1, 1)
+                    if diff >= 5.0:
+                        item["bestFitChoice"] = 2
+                        rec = f"💡 Lebih unggul di Pilihan 2 ({p2_name}): Skor {s2} vs {s1} di Pilihan 1 (+{diff} poin)"
+                    elif diff <= -5.0:
+                        item["bestFitChoice"] = 1
+                        rec = f"Unggul di Pilihan 1 ({p1_name}): Skor {s1} vs {s2} di Pilihan 2 (+{round(abs(diff), 1)} poin)"
+                    elif s1 >= s2:
+                        item["bestFitChoice"] = 1
+                        rec = f"Direkomendasikan di Pilihan 1 ({p1_name}): Skor {s1} (Pilihan 2: {s2})"
+                    else:
+                        item["bestFitChoice"] = "equal"
+                        rec = f"Skor berimbang: Pilihan 1 ({s1}) vs Pilihan 2 ({s2})"
+
+                item["recommendationNote"] = rec
+                item["multiDivisionNote"] = rec
+            elif p2_name:
+                item["bestFitChoice"] = 1
+                item["recommendationNote"] = f"Pilihan 1: {p1_name}. Pilihan 2: {p2_name} (Profil lowongan belum dibuat)"
+                item["multiDivisionNote"] = f"Pilihan 2: {p2_name} (Profil lowongan belum dibuat)"
+            else:
+                item["bestFitChoice"] = 1
+                item["recommendationNote"] = f"Kandidat hanya memilih 1 divisi ({p1_name})"
 
     return {
         "divisionResults": results_by_division,

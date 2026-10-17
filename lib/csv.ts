@@ -17,6 +17,8 @@ export interface RawCsvRow {
   name: string;
   driveLink: string;
   rawDivision: string;
+  rawChoice1?: string;
+  rawChoice2?: string;
   email?: string;
   phone?: string;
   timestamp?: string;
@@ -46,18 +48,52 @@ export function autoDetectColumns(headers: string[]): CsvColumnMapping {
       mapping.nameCol = h;
     } else if (!mapping.driveLinkCol && (c.includes("cv") || c.includes("resume") || c.includes("drive") || c.includes("berkas") || c.includes("unggah"))) {
       mapping.driveLinkCol = h;
-    } else if (!mapping.divisionCol && (c.includes("divisi1") || c.includes("pilihan1") || c.includes("divisiutama") || c.includes("firstchoice"))) {
+    } else if (!mapping.divisionCol && (
+      c.includes("divisi1") || c.includes("pilihan1") || c.includes("divisiutama") || 
+      c.includes("firstchoice") || c.includes("pilihanpertama") || c.includes("divisipertama") ||
+      c.includes("pilihani") || c.includes("divisii") || c.includes("prioritas1") || c.includes("opsi1")
+    )) {
       mapping.divisionCol = h;
-    } else if (!mapping.divisionCol2 && (c.includes("divisi2") || c.includes("pilihan2") || c.includes("divisicadangan") || c.includes("secondchoice"))) {
+    } else if (!mapping.divisionCol2 && (
+      c.includes("divisi2") || c.includes("pilihan2") || c.includes("divisicadangan") || 
+      c.includes("secondchoice") || c.includes("pilihankedua") || c.includes("divisikedua") ||
+      c.includes("pilihanii") || c.includes("divisiii") || c.includes("prioritas2") || c.includes("opsi2") ||
+      c.includes("alternatif") || c.includes("cadangan")
+    )) {
       mapping.divisionCol2 = h;
-    } else if (!mapping.divisionCol && (c.includes("divisi") || c.includes("posisi") || c.includes("lowongan") || c.includes("role") || c.includes("departemen"))) {
-      mapping.divisionCol = h;
     } else if (!mapping.emailCol && (c.includes("email") || c.includes("surel"))) {
       mapping.emailCol = h;
     } else if (!mapping.phoneCol && (c.includes("telepon") || c.includes("phone") || c.includes("hp") || c.includes("wa") || c.includes("whatsapp") || c.includes("kontak"))) {
       mapping.phoneCol = h;
     } else if (!mapping.timestampCol && (c.includes("timestamp") || c.includes("waktu") || c.includes("tanggal"))) {
       mapping.timestampCol = h;
+    }
+  }
+
+  // Second pass: jika divisionCol belum terisi tapi ada kolom berbau divisi / lowongan
+  if (!mapping.divisionCol) {
+    for (const h of headers) {
+      if (h === mapping.nameCol || h === mapping.driveLinkCol || h === mapping.divisionCol2) continue;
+      const c = clean(h);
+      if (c.includes("divisi") || c.includes("posisi") || c.includes("lowongan") || c.includes("role") || c.includes("departemen") || c.includes("jabatan")) {
+        mapping.divisionCol = h;
+        break;
+      }
+    }
+  }
+
+  // Second pass: jika divisionCol2 belum terisi dan ada kolom divisi kedua
+  if (!mapping.divisionCol2 && mapping.divisionCol) {
+    for (const h of headers) {
+      if (h === mapping.nameCol || h === mapping.driveLinkCol || h === mapping.divisionCol) continue;
+      const c = clean(h);
+      if (
+        c.includes("divisi") || c.includes("posisi") || c.includes("lowongan") || 
+        c.includes("role") || c.includes("pilihan") || c.includes("opsi")
+      ) {
+        mapping.divisionCol2 = h;
+        break;
+      }
     }
   }
 
@@ -177,15 +213,22 @@ export function processRawCsvRows(
     const phone = mapping.phoneCol ? row[mapping.phoneCol]?.trim() : undefined;
     const timestamp = mapping.timestampCol ? row[mapping.timestampCol] : undefined;
 
-    // Pisahkan divisi jika kandidat memilih beberapa pilihan
-    const splittedDivisions = splitDivisionCell(rawDivision);
-    const mappedChoices: string[] = [];
-
-    if (splittedDivisions.length === 0 && rawDivision.trim()) {
-      splittedDivisions.push(rawDivision.trim());
+    // Kumpulkan daftar token divisi dengan urutan: Pilihan 1 diikuti Pilihan 2
+    const tokensToProcess: string[] = [];
+    if (mapping.divisionCol && mapping.divisionCol2 && mapping.divisionCol !== mapping.divisionCol2) {
+      if (rawDiv1.trim()) tokensToProcess.push(rawDiv1.trim());
+      if (rawDiv2.trim()) tokensToProcess.push(rawDiv2.trim());
+    } else {
+      const splitted = splitDivisionCell(rawDivision);
+      if (splitted.length === 0 && rawDivision.trim()) {
+        splitted.push(rawDivision.trim());
+      }
+      tokensToProcess.push(...splitted);
     }
 
-    for (const divToken of splittedDivisions) {
+    const mappedChoices: string[] = [];
+
+    for (const divToken of tokensToProcess) {
       // Periksa override manual terlebih dahulu
       const override = manualDivisionOverrides[divToken];
       const matched = override || matchDivisionToProfile(divToken, profiles);
@@ -218,6 +261,8 @@ export function processRawCsvRows(
       name: name.trim(),
       driveLink: driveLink.trim(),
       rawDivision: rawDivision.trim(),
+      rawChoice1: rawDiv1.trim() || undefined,
+      rawChoice2: rawDiv2.trim() || undefined,
       email,
       phone,
       timestamp,

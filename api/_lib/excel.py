@@ -81,6 +81,7 @@ def generate_screening_excel(
     rank_headers = [
         "Divisi",
         "Peringkat",
+        "Pilihan Ke-",
         "Nama Pelamar",
         "Email",
         "No. HP",
@@ -99,6 +100,9 @@ def generate_screening_excel(
         "Skor Kompetensi",
         "Skor Akhir",
         "Status Syarat Wajib",
+        "Pilihan 1 & Skor",
+        "Pilihan 2 & Skor",
+        "Rekomendasi Sistem",
         "Alasan Penilaian",
         "Catatan Khusus",
         "Link CV Drive",
@@ -134,9 +138,18 @@ def generate_screening_excel(
 
             cat_scores = cand.get("categoryScores", {})
 
+            choice_rank_str = f"Pilihan {cand.get('choiceRank', 1)}"
+
+            c1 = cand.get("choice1Result") or {}
+            c2 = cand.get("choice2Result") or {}
+
+            p1_str = f"{c1.get('division', cand.get('pilihan1', '-'))} ({c1.get('finalScore', '-')})" if c1 else "-"
+            p2_str = f"{c2.get('division', cand.get('pilihan2', '-'))} ({c2.get('finalScore', '-')})" if c2 else "-"
+
             row_data = [
                 sanitize_excel_cell(cand.get("division")),
                 cand.get("rank"),
+                sanitize_excel_cell(choice_rank_str),
                 sanitize_excel_cell(cand.get("name")),
                 sanitize_excel_cell(cand.get("email")),
                 sanitize_excel_cell(cand.get("phone")),
@@ -155,6 +168,9 @@ def generate_screening_excel(
                 cat_scores.get("competencies", 0.0),
                 cand.get("finalScore", 0.0),
                 sanitize_excel_cell(cand.get("hardRequirementStatus")),
+                sanitize_excel_cell(p1_str),
+                sanitize_excel_cell(p2_str),
+                sanitize_excel_cell(cand.get("recommendationNote")),
                 sanitize_excel_cell(cand.get("reasons")),
                 sanitize_excel_cell(cand.get("multiDivisionNote")),
                 sanitize_excel_cell(cand.get("driveLink")),
@@ -164,13 +180,13 @@ def generate_screening_excel(
 
             # Styling sel data
             status_val = cand.get("hardRequirementStatus")
-            status_cell = ws_rank.cell(row=current_row, column=20)
+            status_cell = ws_rank.cell(row=current_row, column=21)
             if status_val in status_fills:
                 status_cell.fill = status_fills[status_val]
 
-            # Wrap text untuk kolom alasan (kolom 21)
-            reason_cell = ws_rank.cell(row=current_row, column=21)
-            reason_cell.alignment = Alignment(wrap_text=True, vertical="top")
+            # Wrap text untuk kolom alasan dan rekomendasi
+            ws_rank.cell(row=current_row, column=24).alignment = Alignment(wrap_text=True, vertical="top")
+            ws_rank.cell(row=current_row, column=25).alignment = Alignment(wrap_text=True, vertical="top")
 
             # Border halus
             for c in range(1, len(row_data) + 1):
@@ -181,7 +197,94 @@ def generate_screening_excel(
     # Freeze header & Auto filter
     ws_rank.freeze_panes = "A2"
     ws_rank.auto_filter.ref = f"A1:{get_column_letter(len(rank_headers))}{current_row - 1}"
-    auto_fit_columns(ws_rank, {21: 50, 11: 45, 12: 35, 14: 30, 23: 35})
+    auto_fit_columns(ws_rank, {24: 45, 25: 50, 12: 45, 13: 35, 15: 30, 27: 35})
+
+    # -------------------------------------------------------------
+    # SHEET 2: Perbandingan Pilihan 1 & 2 (Master Kandidat)
+    # -------------------------------------------------------------
+    ws_compare = wb.create_sheet(title="Perbandingan Pilihan 1 & 2")
+    ws_compare.views.sheetView[0].showGridLines = True
+    compare_headers = [
+        "No",
+        "Nama Pelamar",
+        "Email",
+        "No. HP",
+        "Kampus",
+        "Jurusan",
+        "IPK",
+        "Divisi Pilihan 1",
+        "Skor Pilihan 1",
+        "Status Pilihan 1",
+        "Divisi Pilihan 2",
+        "Skor Pilihan 2",
+        "Status Pilihan 2",
+        "Rekomendasi Terbaik",
+        "Catatan Komparasi",
+        "Link CV Drive",
+    ]
+    ws_compare.append([sanitize_excel_cell(h) for h in compare_headers])
+    style_header_row(ws_compare, 1, len(compare_headers), fill_color="4338CA")
+
+    seen_compare = set()
+    comp_row = 2
+    comp_idx = 1
+    for div_name, candidates in division_results.items():
+        for cand in candidates:
+            c_key = cand.get("fileId") or cand.get("email") or str(cand.get("sourceRowIndex"))
+            if c_key in seen_compare:
+                continue
+            seen_compare.add(c_key)
+
+            c1 = cand.get("choice1Result") or {}
+            c2 = cand.get("choice2Result") or {}
+
+            p1_name = cand.get("pilihan1") or (c1.get("division") if c1 else "-")
+            p1_score = c1.get("finalScore", "-") if c1 else "-"
+            p1_status = c1.get("hardRequirementStatus", "-") if c1 else "-"
+
+            p2_name = cand.get("pilihan2") or (c2.get("division") if c2 else "-")
+            p2_score = c2.get("finalScore", "-") if c2 else "-"
+            p2_status = c2.get("hardRequirementStatus", "-") if c2 else "-"
+
+            best_fit = cand.get("bestFitChoice")
+            best_label = f"Pilihan {best_fit}" if best_fit in [1, 2] else ("Berimbang" if best_fit == "equal" else "Pilihan 1")
+
+            comp_data = [
+                comp_idx,
+                sanitize_excel_cell(cand.get("name")),
+                sanitize_excel_cell(cand.get("email")),
+                sanitize_excel_cell(cand.get("phone")),
+                sanitize_excel_cell(cand.get("university")),
+                sanitize_excel_cell(cand.get("major")),
+                cand.get("gpa") if cand.get("gpa") is not None else "-",
+                sanitize_excel_cell(p1_name),
+                p1_score,
+                sanitize_excel_cell(p1_status),
+                sanitize_excel_cell(p2_name),
+                p2_score,
+                sanitize_excel_cell(p2_status),
+                sanitize_excel_cell(best_label),
+                sanitize_excel_cell(cand.get("recommendationNote")),
+                sanitize_excel_cell(cand.get("driveLink")),
+            ]
+            ws_compare.append(comp_data)
+
+            if p1_status in status_fills:
+                ws_compare.cell(row=comp_row, column=10).fill = status_fills[p1_status]
+            if p2_status in status_fills:
+                ws_compare.cell(row=comp_row, column=13).fill = status_fills[p2_status]
+
+            for c in range(1, len(comp_data) + 1):
+                ws_compare.cell(row=comp_row, column=c).border = thin_border
+                if c == 15:
+                    ws_compare.cell(row=comp_row, column=c).alignment = Alignment(wrap_text=True, vertical="top")
+
+            comp_row += 1
+            comp_idx += 1
+
+    ws_compare.freeze_panes = "A2"
+    ws_compare.auto_filter.ref = f"A1:{get_column_letter(len(compare_headers))}{comp_row - 1}"
+    auto_fit_columns(ws_compare, {15: 55, 16: 35, 5: 30})
 
     # -------------------------------------------------------------
     # SHEET 2: Perlu Dicek
