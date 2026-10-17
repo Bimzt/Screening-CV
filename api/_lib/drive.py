@@ -14,6 +14,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from googleapiclient.errors import HttpError
 import io
+import urllib.request
+import urllib.parse
+from http.cookiejar import CookieJar
 from .config import MAX_FILE_SIZE_BYTES
 
 # Regex validasi ID Drive yang ketat (panjang minimal 10 karakter alfanumerik / hyphen / underscore)
@@ -94,6 +97,70 @@ def get_drive_service(creds_b64: Optional[str] = None):
     return build("drive", "v3", credentials=credentials, cache_discovery=False)
 
 
+def download_public_drive_file(file_id: str) -> Tuple[bytes, str, str]:
+    """
+    Mengunduh berkas dari tautan publik Google Drive (Anyone with the link can view)
+    tanpa memerlukan Service Account.
+    Mengembalikan (file_bytes, mime_type, filename).
+    """
+    cj = CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
+    urls = [
+        f"https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0",
+        f"https://drive.google.com/uc?export=download&id={file_id}",
+        f"https://docs.google.com/document/d/{file_id}/export?format=pdf",
+    ]
+
+    for url in urls:
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with opener.open(req, timeout=25) as resp:
+                content_type = resp.headers.get("Content-Type", "")
+                content_disposition = resp.headers.get("Content-Disposition", "")
+                data = resp.read(MAX_FILE_SIZE_BYTES + 1024)
+
+                # Tangani halaman konfirmasi scan virus Google Drive jika ada
+                if b"confirm=" in data:
+                    match = re.search(r"confirm=([0-9A-Za-z_-]+)", data.decode("utf-8", errors="ignore"))
+                    if match:
+                        confirm_token = match.group(1)
+                        c_url = f"https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm={confirm_token}"
+                        c_req = urllib.request.Request(c_url, headers=headers)
+                        with opener.open(c_req, timeout=25) as c_resp:
+                            data = c_resp.read(MAX_FILE_SIZE_BYTES + 1024)
+                            content_type = c_resp.headers.get("Content-Type", "")
+                            content_disposition = c_resp.headers.get("Content-Disposition", "")
+
+                # Validasi file biner
+                if data.startswith(b"%PDF-"):
+                    mime = "application/pdf"
+                    fn = f"{file_id}.pdf"
+                    if "filename=" in content_disposition:
+                        fn_match = re.search(r'filename="?([^";\n]+)"?', content_disposition)
+                        if fn_match:
+                            fn = fn_match.group(1)
+                    return data, mime, fn
+                elif data.startswith(b"PK\x03\x04"):
+                    mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    fn = f"{file_id}.docx"
+                    if "filename=" in content_disposition:
+                        fn_match = re.search(r'filename="?([^";\n]+)"?', content_disposition)
+                        if fn_match:
+                            fn = fn_match.group(1)
+                    return data, mime, fn
+        except Exception:
+            continue
+
+    raise PermissionError(
+        f"Berkas Google Drive ({file_id}) tidak dapat diunduh langsung secara publik. "
+        "Pastikan izin link diatur 'Siapa saja yang memiliki link' atau bagikan folder ke email Service Account."
+    )
+
+
 def download_drive_file(
     file_id: str,
     drive_service: Optional[Any] = None,
@@ -101,12 +168,20 @@ def download_drive_file(
 ) -> Tuple[bytes, str, str]:
     """
     Mengunduh berkas dari Google Drive dengan penanganan retry 429/5xx (exponential backoff).
+    Mendukung unduhan via Service Account dan otomatis fallback ke link publik jika tanpa kredensial.
     Mengembalikan (file_bytes, mime_type, filename).
     """
     if not DRIVE_ID_REGEX.match(file_id):
         raise ValueError(f"File ID tidak valid: {file_id}")
 
-    service = drive_service or get_drive_service()
+    has_sa = bool(drive_service or os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON_B64"))
+    if not has_sa:
+        return download_public_drive_file(file_id)
+
+    try:
+        service = drive_service or get_drive_service()
+    except Exception:
+        return download_public_drive_file(file_id)
 
     # Dapatkan metadata berkas (nama, ukuran, mimeType)
     meta = None
@@ -123,6 +198,11 @@ def download_drive_file(
             if status in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
                 continue
+            if status in (403, 404):
+                try:
+                    return download_public_drive_file(file_id)
+                except Exception:
+                    pass
             if status == 404:
                 raise FileNotFoundError(f"File ID {file_id} tidak ditemukan di Google Drive atau izin akses belum diberikan ke Service Account.")
             if status == 403:
