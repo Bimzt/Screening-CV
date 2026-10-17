@@ -6,23 +6,16 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 
+const DEFAULT_PASSWORD = "recruiter123";
+const DEFAULT_SECRET = "super-secret-development-session-key-32chars";
+
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const { password } = body as { password?: string };
 
-    const expectedPassword = process.env.APP_PASSWORD;
-    const sessionSecret = process.env.SESSION_SECRET;
-
-    if (!expectedPassword || !sessionSecret) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Konfigurasi server belum lengkap (APP_PASSWORD / SESSION_SECRET).",
-        },
-        { status: 500 }
-      );
-    }
+    const expectedPassword = process.env.APP_PASSWORD || DEFAULT_PASSWORD;
+    const sessionSecret = process.env.SESSION_SECRET || DEFAULT_SECRET;
 
     if (!password || typeof password !== "string") {
       return NextResponse.json(

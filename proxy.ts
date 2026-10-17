@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME, verifySession } from "@/lib/auth";
 
+const DEFAULT_SECRET = "super-secret-development-session-key-32chars";
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const sessionSecret = process.env.SESSION_SECRET || "";
+  const sessionSecret = process.env.SESSION_SECRET || DEFAULT_SECRET;
 
   // Lewati static assets Next.js dan favicon
   if (
