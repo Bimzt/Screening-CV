@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch (err: unknown) {
+  } catch {
     return NextResponse.json(
       {
         success: false,

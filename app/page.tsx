@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { JobProfile, ProcessedCVResult, RankingResponse } from "@/lib/types";
+import { JobProfile, RankingResponse } from "@/lib/types";
 import { RawCsvRow } from "@/lib/csv";
 import { DEFAULT_EXAMPLE_PROFILES } from "@/lib/defaultProfiles";
 import { getLocalData, saveLocalData } from "@/lib/idb";
@@ -21,7 +21,6 @@ import {
   Loader2,
   Award,
   ChevronRight,
-  Server,
   Sparkles,
 } from "lucide-react";
 
@@ -33,7 +32,6 @@ export default function HomePage() {
   const [currentStep, setCurrentStep] = useState<ActiveStep>("profiles");
   const [profiles, setProfiles] = useState<JobProfile[]>(DEFAULT_EXAMPLE_PROFILES);
   const [csvRowsToProcess, setCsvRowsToProcess] = useState<RawCsvRow[]>([]);
-  const [processedCVs, setProcessedCVs] = useState<ProcessedCVResult[]>([]);
   const [rankingData, setRankingData] = useState<RankingResponse | null>(null);
   const [isQuickTestOpen, setIsQuickTestOpen] = useState(false);
 
@@ -67,11 +65,9 @@ export default function HomePage() {
   };
 
   const handleProcessingFinish = (
-    ranking: RankingResponse,
-    cvResults: ProcessedCVResult[]
+    ranking: RankingResponse
   ) => {
     setRankingData(ranking);
-    setProcessedCVs(cvResults);
     setCurrentStep("results");
   };
 

@@ -3,9 +3,7 @@
 import React, { useState } from "react";
 import {
   RankingResponse,
-  RankedCandidate,
   JobProfile,
-  ProcessedCVResult,
 } from "@/lib/types";
 import { clearLocalData } from "@/lib/idb";
 import {
@@ -17,9 +15,6 @@ import {
   ChevronUp,
   AlertTriangle,
   CheckCircle2,
-  HelpCircle,
-  XCircle,
-  FileSpreadsheet,
   Briefcase,
   Layers,
 } from "lucide-react";

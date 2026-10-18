@@ -1,4 +1,4 @@
-import { JobProfile, ScoringCategoryConfig } from "./types";
+import { JobProfile } from "./types";
 
 export const MAX_PROFILE_FILE_SIZE_BYTES = 200 * 1024; // 200 KB
 export const SUPPORTED_PROFILE_VERSION = "1.0";
@@ -49,7 +49,7 @@ export function normalizeProfileWeights(profile: JobProfile): JobProfile {
 
   // Normalisasi proporsional
   let runningSum = 0;
-  activeEntries.forEach(([key, config], idx) => {
+  activeEntries.forEach(([, config], idx) => {
     if (idx === activeEntries.length - 1) {
       // Sisa pembulatan diberikan ke item terakhir
       config.weight = Math.max(0, 100 - runningSum);
@@ -83,16 +83,18 @@ export function parseAndValidateProfileJson(jsonString: string): {
     };
   }
 
-  let data: any;
+  let parsed: unknown;
   try {
-    data = JSON.parse(jsonString);
-  } catch (err) {
+    parsed = JSON.parse(jsonString);
+  } catch {
     return { valid: false, error: "Sintaks JSON tidak valid atau rusak." };
   }
 
-  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     return { valid: false, error: "Root JSON profil harus berupa object." };
   }
+
+  const data = parsed as Partial<JobProfile> & Record<string, unknown>;
 
   // Tolak field tak dikenal
   for (const key of Object.keys(data)) {

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { JobProfile, ScoringCategoryConfig } from "@/lib/types";
+import React, { useState } from "react";
+import { JobProfile } from "@/lib/types";
 import { normalizeProfileWeights } from "@/lib/profile";
 import { X, Check, AlertCircle, Sparkles } from "lucide-react";
 
@@ -18,58 +18,64 @@ export default function ProfileEditorModal({
   onSave,
   onClose,
 }: ProfileEditorModalProps) {
-  const [formData, setFormData] = useState<JobProfile | null>(null);
+  if (!isOpen) return null;
+
+  return (
+    <ProfileEditorContent
+      key={profile?.division || "new-profile"}
+      profile={profile}
+      onSave={onSave}
+      onClose={onClose}
+    />
+  );
+}
+
+function ProfileEditorContent({
+  profile,
+  onSave,
+  onClose,
+}: {
+  profile: JobProfile | null;
+  onSave: (updatedProfile: JobProfile) => void;
+  onClose: () => void;
+}) {
+  const [formData, setFormData] = useState<JobProfile>(() => {
+    if (profile) return JSON.parse(JSON.stringify(profile));
+    return {
+      version: "1.0",
+      division: "",
+      divisionAliases: [],
+      title: "",
+      jd: "",
+      hardRequirements: {
+        minGpa: undefined,
+        allowedMajors: [],
+        mandatorySkills: {
+          items: [],
+          rule: "all",
+        },
+      },
+      additionalSkills: [],
+      categories: {
+        experience: { label: "Pengalaman", weight: 35, active: true },
+        projects: { label: "Project / Portofolio", weight: 30, active: true },
+        cert_edu: { label: "Sertifikasi & Pendidikan", weight: 20, active: true },
+        competencies: { label: "Kompetensi", weight: 15, active: true },
+      },
+      thresholds: {
+        durationMonths: 12,
+        projectsCount: 3,
+      },
+    };
+  });
+
   const [error, setError] = useState<string | null>(null);
 
   // State teks lokal agar pengguna bebas mengetik spasi, koma, dsb. tanpa terpotong
-  const [aliasesText, setAliasesText] = useState("");
-  const [allowedMajorsText, setAllowedMajorsText] = useState("");
-  const [mandatorySkillsText, setMandatorySkillsText] = useState("");
-  const [additionalSkillsText, setAdditionalSkillsText] = useState("");
-
-  useEffect(() => {
-    if (profile) {
-      setFormData(JSON.parse(JSON.stringify(profile)));
-      setAliasesText((profile.divisionAliases || []).join(", "));
-      setAllowedMajorsText((profile.hardRequirements?.allowedMajors || []).join(", "));
-      setMandatorySkillsText((profile.hardRequirements?.mandatorySkills?.items || []).join(", "));
-      setAdditionalSkillsText((profile.additionalSkills || []).join(", "));
-    } else {
-      setFormData({
-        version: "1.0",
-        division: "",
-        divisionAliases: [],
-        title: "",
-        jd: "",
-        hardRequirements: {
-          minGpa: undefined,
-          allowedMajors: [],
-          mandatorySkills: {
-            items: [],
-            rule: "all",
-          },
-        },
-        additionalSkills: [],
-        categories: {
-          experience: { label: "Pengalaman", weight: 35, active: true },
-          projects: { label: "Project / Portofolio", weight: 30, active: true },
-          cert_edu: { label: "Sertifikasi & Pendidikan", weight: 20, active: true },
-          competencies: { label: "Kompetensi", weight: 15, active: true },
-        },
-        thresholds: {
-          durationMonths: 12,
-          projectsCount: 3,
-        },
-      });
-      setAliasesText("");
-      setAllowedMajorsText("");
-      setMandatorySkillsText("");
-      setAdditionalSkillsText("");
-    }
-    setError(null);
-  }, [profile, isOpen]);
-
-  if (!isOpen || !formData) return null;
+  const [aliasesText, setAliasesText] = useState<string>(() => (profile?.divisionAliases || []).join(", "));
+  const [allowedMajorsText, setAllowedMajorsText] = useState<string>(() => (profile?.hardRequirements?.allowedMajors || []).join(", "));
+  const [mandatorySkillsText, setMandatorySkillsText] = useState<string>(() => (profile?.hardRequirements?.mandatorySkills?.items || []).join(", "));
+  const [additionalSkillsText, setAdditionalSkillsText] = useState<string>(() => (profile?.additionalSkills || []).join(", "));
 
   const totalWeight = Object.values(formData.categories)
     .filter((c) => c.active)

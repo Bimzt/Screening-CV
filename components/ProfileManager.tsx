@@ -2,11 +2,10 @@
 
 import React, { useRef, useState } from "react";
 import { JobProfile } from "@/lib/types";
-import { parseAndValidateProfileJson, exportProfileToJson } from "@/lib/profile";
+import { parseAndValidateProfileJson } from "@/lib/profile";
 import { DEFAULT_EXAMPLE_PROFILES } from "@/lib/defaultProfiles";
 import ProfileEditorModal from "./ProfileEditorModal";
 import {
-  FileText,
   Plus,
   Upload,
   Download,
@@ -105,7 +104,7 @@ export default function ProfileManager({
             onProfilesChange([...profiles, res.profile!]);
           }
         }
-      } catch (err) {
+      } catch {
         setImportError("Gagal membaca berkas JSON profil.");
       }
     };

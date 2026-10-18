@@ -4,19 +4,12 @@ import React, { useState } from "react";
 import { JobProfile, ProcessedCVResult, RankingResponse, RankedCandidate } from "@/lib/types";
 import {
   UploadCloud,
-  FileText,
   Sparkles,
-  CheckCircle2,
   AlertTriangle,
   X,
   Loader2,
   Award,
-  ChevronRight,
-  User,
-  GraduationCap,
-  Briefcase,
   Layers,
-  ArrowRight,
 } from "lucide-react";
 
 interface QuickTestModalProps {

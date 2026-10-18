@@ -26,7 +26,7 @@ Aplikasi internal berbasis web untuk menyaring dan memeringkatkan berkas CV pela
 ### A. Frontend (Next.js App Router + TypeScript + Tailwind CSS)
 - **Halaman `/login`**: Antarmuka otentikasi tim rekrutmen.
 - **Route `/auth/login` & `/auth/logout`**: Mengelola penerbitan dan penghapusan session cookie bertanda tangan HMAC.
-- **Middleware (`middleware.ts`)**: Memproteksi rute privat dan memastikan hanya pengguna dengan sesi valid yang dapat mengakses dashboard.
+- **Proxy / Middleware (`proxy.ts`)**: Memproteksi rute privat dan memastikan hanya pengguna dengan sesi valid yang dapat mengakses dashboard (sesuai konvensi Next.js 16).
 - **Halaman Utama (`/`)**: Satu alur terpadu yang memandu rekruter mulai dari impor/edit profil lowongan, unggah dan pemetaan CSV, pemrosesan batch CV, hingga pratinjau ranking interaktif dan pengunduhan Excel.
 - **Client Concurrency Pool (`lib/pool.ts`)**: Menjalankan pemrosesan CV dengan konkurensi 4 request simultan, menyediakan indikator progres real-time, estimasi waktu, dan tombol pembatalan.
 
@@ -34,7 +34,7 @@ Aplikasi internal berbasis web untuk menyaring dan memeringkatkan berkas CV pela
 - Berada di direktori root `/api/` dan runtime `@vercel/python`:
   - `POST /api/process`: Menerima `{ fileId }`, mengunduh berkas dari Google Drive via Service Account, mengekstrak teks PDF/DOCX, mendeteksi scan, dan mengekstrak field/seksi.
   - `POST /api/rank`: Mengelompokkan kandidat per divisi, menghitung kemiripan TF-IDF (unigram + bigram) terhadap teks JD, mengevaluasi hard requirement, menghitung skor kategori dan skor akhir, serta menyusun alasan penilaian.
-  - `POST /api/export`: Mengonversi hasil pemeringkatan menjadi berkas Excel `.xlsx` dengan 3 sheet berstandar HR.
+  - `POST /api/export`: Mengonversi hasil pemeringkatan menjadi berkas Excel `.xlsx` dengan sheet rekapitulasi, detail pelamar, dan perbandingan pilihan 1 & 2 berstandar HR.
 - Modul bersama di `api/_lib/`:
   - `config.py`: Seluruh konstanta dan batas sistem.
   - `auth.py`: Verifikasi HMAC session cookie dan header CSRF secara mandiri.

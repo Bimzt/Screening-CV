@@ -5,7 +5,7 @@ import { RawCsvRow } from "@/lib/csv";
 import { JobProfile, ProcessedCVResult, RankingResponse } from "@/lib/types";
 import { ConcurrencyPool, PoolProgress } from "@/lib/pool";
 import { saveLocalData } from "@/lib/idb";
-import { Loader2, CheckCircle2, AlertTriangle, XCircle, Clock } from "lucide-react";
+import { Loader2, AlertTriangle, Clock } from "lucide-react";
 
 interface ProcessingStepProps {
   rows: RawCsvRow[];

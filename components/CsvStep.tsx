@@ -66,7 +66,7 @@ export default function CsvStep({
       // Auto detect columns
       const detected = autoDetectColumns(headers);
       setColumnMapping(detected);
-    } catch (err) {
+    } catch {
       setParsingError("Gagal membaca atau mem-parse berkas CSV.");
     }
   };
