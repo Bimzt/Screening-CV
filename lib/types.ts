@@ -137,6 +137,7 @@ export interface RankedCandidate {
   flags: string[];
   driveLink?: string;
   multiDivisionNote?: string;
+  divisionChoices?: string[];
   choiceRank?: number;
   isFirstChoice?: boolean;
   pilihan1?: string;

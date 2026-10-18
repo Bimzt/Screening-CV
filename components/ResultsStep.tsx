@@ -41,12 +41,67 @@ export default function ResultsStep({
   const [isExporting, setIsExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
 
+  // Peta kandidat lintas divisi agar Pilihan 1 & Pilihan 2 selalu tersinkronisasi (kompatibel data baru & lama)
+  const candidatesPeerMap = React.useMemo(() => {
+    const map: Record<string, Record<string, typeof rankingData.divisionResults[string][0]>> = {};
+    for (const [div, cands] of Object.entries(rankingData.divisionResults || {})) {
+      for (const c of cands || []) {
+        const key = c.fileId || c.email || String(c.sourceRowIndex);
+        if (key) {
+          if (!map[key]) map[key] = {};
+          map[key][div] = c;
+        }
+      }
+    }
+    return map;
+  }, [rankingData]);
+
+  // Helper untuk mendapatkan info komparasi pilihan pelamar
+  const getCandidateChoiceInfo = (cand: typeof rankingData.divisionResults[string][0]) => {
+    const candKey = cand.fileId || cand.email || String(cand.sourceRowIndex);
+    const peerMap = candidatesPeerMap[candKey] || {};
+
+    let choices = cand.divisionChoices || [];
+    if (!choices.length && cand.multiDivisionNote) {
+      if (cand.multiDivisionNote.includes("melamar di divisi:")) {
+        const other = cand.multiDivisionNote.split("melamar di divisi:")[1]?.split(",") || [];
+        choices = [cand.division, ...other.map((d) => d.trim()).filter(Boolean)];
+      }
+    }
+
+    const p1Name = cand.pilihan1 || choices[0] || cand.division;
+    const p2Name = cand.pilihan2 || choices[1];
+
+    let choiceRank = cand.choiceRank;
+    if (!choiceRank) {
+      choiceRank = p2Name && cand.division === p2Name ? 2 : 1;
+    }
+
+    const c1 = cand.choice1Result || peerMap[p1Name] || (cand.division === p1Name ? cand : undefined);
+    const c2 = cand.choice2Result || (p2Name ? peerMap[p2Name] : undefined) || (p2Name && cand.division === p2Name ? cand : undefined);
+
+    let bestFitChoice = cand.bestFitChoice;
+    if (!bestFitChoice && c1 && c2) {
+      bestFitChoice = c2.finalScore > c1.finalScore ? 2 : 1;
+    }
+
+    return {
+      p1Name,
+      p2Name,
+      choiceRank,
+      c1,
+      c2,
+      bestFitChoice,
+    };
+  };
+
   const currentCandidates = (
     rankingData.divisionResults[selectedDivision] || []
   ).filter((c) => {
+    const info = getCandidateChoiceInfo(c);
     if (statusFilter !== "Semua" && c.hardRequirementStatus !== statusFilter) return false;
-    if (choiceFilter === "Pilihan 1" && c.choiceRank !== 1) return false;
-    if (choiceFilter === "Pilihan 2" && c.choiceRank !== 2) return false;
+    if (choiceFilter === "Pilihan 1" && info.choiceRank !== 1) return false;
+    if (choiceFilter === "Pilihan 2" && info.choiceRank !== 2) return false;
     return true;
   });
 
@@ -68,8 +123,19 @@ export default function ResultsStep({
       });
 
       if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.message || `Gagal mengunduh Excel: HTTP ${res.status}`);
+        let errMsg = `Gagal mengunduh Excel: HTTP ${res.status}`;
+        try {
+          const errText = await res.text();
+          try {
+            const errJson = JSON.parse(errText);
+            if (errJson.message) errMsg = errJson.message;
+          } catch {
+            if (errText) errMsg = `${errMsg} - ${errText.slice(0, 150)}`;
+          }
+        } catch {
+          // ignore
+        }
+        throw new Error(errMsg);
       }
 
       const blob = await res.blob();
@@ -177,36 +243,46 @@ export default function ResultsStep({
 
       {activeTab === "ranking" ? (
         <div className="space-y-4">
-          {/* Filters Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            {/* Division Selector */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {divisions.map((div) => (
-                <button
-                  key={div}
-                  onClick={() => setSelectedDivision(div)}
-                  className={`px-3 py-1.5 rounded-xl font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                    selectedDivision === div
-                      ? "bg-indigo-600 text-white font-semibold"
-                      : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
-                  }`}
-                >
-                  {div} ({rankingData.divisionResults[div]?.length || 0})
-                </button>
-              ))}
-            </div>
+          {/* Row 1: Division Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800/60">
+            {divisions.map((div) => (
+              <button
+                key={div}
+                onClick={() => setSelectedDivision(div)}
+                className={`px-3.5 py-2 rounded-xl font-medium transition-colors cursor-pointer whitespace-nowrap text-xs flex items-center gap-2 ${
+                  selectedDivision === div
+                    ? "bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20"
+                    : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+                }`}
+              >
+                <span>{div}</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                  selectedDivision === div ? "bg-white/20 text-white" : "bg-slate-800 text-slate-400"
+                }`}>
+                  {rankingData.divisionResults[div]?.length || 0}
+                </span>
+              </button>
+            ))}
+          </div>
 
-            {/* Filter Buttons */}
-            <div className="flex flex-wrap items-center gap-2 self-start">
-              {/* Choice Filter */}
-              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+          {/* Row 2: Filter Toolbar (Pilihan 1 & 2 + Status Syarat Wajib) */}
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+            {/* Filter Pilihan 1 vs Pilihan 2 */}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-semibold text-[11px] flex items-center gap-1">
+                <Briefcase className="w-3.5 h-3.5 text-indigo-400" />
+                Filter Pilihan:
+              </span>
+              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
                 {(["Semua", "Pilihan 1", "Pilihan 2"] as const).map((ch) => (
                   <button
                     key={ch}
                     onClick={() => setChoiceFilter(ch)}
-                    className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer text-[11px] ${
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer text-xs font-semibold ${
                       choiceFilter === ch
-                        ? "bg-purple-600/30 text-purple-300 font-bold"
+                        ? ch === "Pilihan 2"
+                          ? "bg-purple-600 text-white shadow-sm"
+                          : "bg-indigo-600 text-white shadow-sm"
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
@@ -214,16 +290,19 @@ export default function ResultsStep({
                   </button>
                 ))}
               </div>
+            </div>
 
-              {/* Status Filter */}
-              <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+            {/* Filter Status Syarat Wajib */}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-semibold text-[11px]">Status Syarat Wajib:</span>
+              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
                 {["Semua", "Memenuhi", "Perlu dicek", "Tidak memenuhi"].map((st) => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
                     className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer text-[11px] ${
                       statusFilter === st
-                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold border border-indigo-500/30"
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
@@ -260,6 +339,9 @@ export default function ResultsStep({
                   ) : (
                     currentCandidates.map((cand) => {
                       const isExpanded = expandedCandidateId === cand.fileId;
+                      const info = getCandidateChoiceInfo(cand);
+                      const isChoice2 = info.choiceRank === 2;
+
                       let statusBadge = (
                         <span className="px-2 py-0.5 rounded-md text-[10px] bg-slate-800 text-slate-400">
                           {cand.hardRequirementStatus}
@@ -295,31 +377,41 @@ export default function ResultsStep({
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-white">{cand.name}</span>
-                                {cand.choiceRank === 2 ? (
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">
+                                {isChoice2 ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
                                     Pilihan 2
                                   </span>
                                 ) : (
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">
                                     Pilihan 1
                                   </span>
                                 )}
                               </div>
                               <div className="text-[11px] text-slate-400">{cand.email || "-"}</div>
-                              {cand.choice1Result && cand.choice2Result ? (
+                              {info.c1 && info.c2 ? (
                                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">
                                   <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
-                                    P1: {cand.choice1Result.division} ({cand.choice1Result.finalScore.toFixed(1)})
+                                    P1: {info.c1.division} ({info.c1.finalScore.toFixed(1)})
                                   </span>
                                   <span className="text-slate-500">&bull;</span>
                                   <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
-                                    P2: {cand.choice2Result.division} ({cand.choice2Result.finalScore.toFixed(1)})
+                                    P2: {info.c2.division} ({info.c2.finalScore.toFixed(1)})
                                   </span>
-                                  {cand.bestFitChoice === 2 && (
+                                  {info.bestFitChoice === 2 && (
                                     <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
                                       ⭐ Lebih Cocok di P2
                                     </span>
                                   )}
+                                </div>
+                              ) : info.p2Name ? (
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+                                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
+                                    P1: {info.p1Name}
+                                  </span>
+                                  <span className="text-slate-500">&bull;</span>
+                                  <span className="px-1.5 py-0.5 rounded bg-purple-950/40 border border-purple-800/40 text-purple-300 font-medium">
+                                    P2: {info.p2Name}
+                                  </span>
                                 </div>
                               ) : cand.multiDivisionNote ? (
                                 <div className="text-[10px] text-indigo-400 font-medium mt-0.5">
@@ -363,78 +455,78 @@ export default function ResultsStep({
                             <tr className="bg-slate-950/70">
                               <td colSpan={8} className="p-4 space-y-3 border-t border-slate-800">
                                 {/* Dual Choice Comparison Card */}
-                                {cand.choice1Result && cand.choice2Result && (
+                                {(info.c1 || info.p2Name) && (
                                   <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-3 mb-2">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                       <span className="text-xs font-bold text-white flex items-center gap-1.5">
                                         <Briefcase className="w-4 h-4 text-indigo-400" />
                                         Komparasi Hasil: Pilihan 1 vs Pilihan 2
                                       </span>
-                                      {cand.bestFitChoice === 2 ? (
+                                      {info.bestFitChoice === 2 ? (
                                         <span className="text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full self-start">
-                                          💡 Rekomendasi: Lebih Unggul di Pilihan 2 ({cand.choice2Result.division})
+                                          💡 Rekomendasi: Lebih Unggul di Pilihan 2 ({info.p2Name})
                                         </span>
                                       ) : (
                                         <span className="text-[11px] font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full self-start">
-                                          ✓ Rekomendasi: Sesuai di Pilihan 1 ({cand.choice1Result.division})
+                                          ✓ Rekomendasi: Sesuai di Pilihan 1 ({info.p1Name})
                                         </span>
                                       )}
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                                       {/* Card Pilihan 1 */}
-                                      <div className={`p-3 rounded-xl border ${cand.choiceRank === 1 ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-slate-800 bg-slate-950/40'}`}>
+                                      <div className={`p-3 rounded-xl border ${!isChoice2 ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-slate-800 bg-slate-950/40'}`}>
                                         <div className="flex items-center justify-between mb-1">
                                           <span className="font-bold text-white flex items-center gap-1.5">
                                             <span className="w-4 h-4 rounded-full bg-indigo-600/30 text-indigo-300 flex items-center justify-center text-[10px]">1</span>
-                                            {cand.choice1Result.division}
+                                            {info.p1Name}
                                           </span>
                                           <span className="font-mono font-bold text-indigo-400 text-sm">
-                                            {cand.choice1Result.finalScore.toFixed(1)}
+                                            {info.c1 ? info.c1.finalScore.toFixed(1) : "-"}
                                           </span>
                                         </div>
                                         <div className="text-[11px] text-slate-400 mb-2">
-                                          Status Syarat Wajib: <span className="font-semibold text-slate-200">{cand.choice1Result.hardRequirementStatus}</span>
+                                          Status Syarat Wajib: <span className="font-semibold text-slate-200">{info.c1?.hardRequirementStatus || "-"}</span>
                                         </div>
-                                        {cand.choice1Result.categoryScores && (
+                                        {info.c1?.categoryScores && (
                                           <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-400">
-                                            <div>Pengalaman: {cand.choice1Result.categoryScores.experience ?? "-"}</div>
-                                            <div>Project: {cand.choice1Result.categoryScores.projects ?? "-"}</div>
-                                            <div>Sert & Pend: {cand.choice1Result.categoryScores.cert_edu ?? "-"}</div>
-                                            <div>Kompetensi: {cand.choice1Result.categoryScores.competencies ?? "-"}</div>
+                                            <div>Pengalaman: {info.c1.categoryScores.experience ?? "-"}</div>
+                                            <div>Project: {info.c1.categoryScores.projects ?? "-"}</div>
+                                            <div>Sert & Pend: {info.c1.categoryScores.cert_edu ?? "-"}</div>
+                                            <div>Kompetensi: {info.c1.categoryScores.competencies ?? "-"}</div>
                                           </div>
                                         )}
                                       </div>
 
                                       {/* Card Pilihan 2 */}
-                                      <div className={`p-3 rounded-xl border ${cand.choiceRank === 2 ? 'border-purple-500/50 bg-purple-950/20' : 'border-slate-800 bg-slate-950/40'}`}>
+                                      <div className={`p-3 rounded-xl border ${isChoice2 ? 'border-purple-500/50 bg-purple-950/20' : 'border-slate-800 bg-slate-950/40'}`}>
                                         <div className="flex items-center justify-between mb-1">
                                           <span className="font-bold text-white flex items-center gap-1.5">
                                             <span className="w-4 h-4 rounded-full bg-purple-600/30 text-purple-300 flex items-center justify-center text-[10px]">2</span>
-                                            {cand.choice2Result.division}
+                                            {info.p2Name || "Tidak Ada"}
                                           </span>
                                           <span className="font-mono font-bold text-purple-400 text-sm">
-                                            {cand.choice2Result.finalScore.toFixed(1)}
+                                            {info.c2 ? info.c2.finalScore.toFixed(1) : "-"}
                                           </span>
                                         </div>
                                         <div className="text-[11px] text-slate-400 mb-2">
-                                          Status Syarat Wajib: <span className="font-semibold text-slate-200">{cand.choice2Result.hardRequirementStatus}</span>
+                                          Status Syarat Wajib: <span className="font-semibold text-slate-200">{info.c2?.hardRequirementStatus || "-"}</span>
                                         </div>
-                                        {cand.choice2Result.categoryScores && (
+                                        {info.c2?.categoryScores && (
                                           <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-400">
-                                            <div>Pengalaman: {cand.choice2Result.categoryScores.experience ?? "-"}</div>
-                                            <div>Project: {cand.choice2Result.categoryScores.projects ?? "-"}</div>
-                                            <div>Sert & Pend: {cand.choice2Result.categoryScores.cert_edu ?? "-"}</div>
-                                            <div>Kompetensi: {cand.choice2Result.categoryScores.competencies ?? "-"}</div>
+                                            <div>Pengalaman: {info.c2.categoryScores.experience ?? "-"}</div>
+                                            <div>Project: {info.c2.categoryScores.projects ?? "-"}</div>
+                                            <div>Sert & Pend: {info.c2.categoryScores.cert_edu ?? "-"}</div>
+                                            <div>Kompetensi: {info.c2.categoryScores.competencies ?? "-"}</div>
                                           </div>
                                         )}
                                       </div>
                                     </div>
 
-                                    {cand.recommendationNote && (
+                                    {(cand.recommendationNote || cand.multiDivisionNote) && (
                                       <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300">
                                         <strong className="text-indigo-400">Catatan Komparasi: </strong>
-                                        {cand.recommendationNote}
+                                        {cand.recommendationNote || cand.multiDivisionNote}
                                       </div>
                                     )}
                                   </div>
