@@ -106,13 +106,9 @@ export default function HomePage() {
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-bold text-base text-white tracking-tight flex items-center gap-2">
+              <div className="font-bold text-base text-white tracking-tight">
                 CV Screener
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  V1.0
-                </span>
               </div>
-              <p className="text-[11px] text-slate-400">Internal Recruitment Portal</p>
             </div>
           </div>
 
@@ -122,7 +118,7 @@ export default function HomePage() {
               className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 text-indigo-300 hover:text-white border border-indigo-500/40 hover:border-indigo-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Uji Coba 1 CV (Quick Test)</span>
+              <span>Uji Coba</span>
             </button>
 
             <div className="hidden sm:flex items-center gap-1.5 text-xs bg-emerald-950/40 border border-emerald-800/50 text-emerald-400 px-3 py-1.5 rounded-lg">
@@ -233,7 +229,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        CV Screener V1.0 &bull; Zero Server Storage &bull; Data Terenkripsi & Dirahasiakan
+        CV Screener &bull; Zero Server Storage &bull; Data Terenkripsi & Dirahasiakan
       </footer>
     </div>
   );
