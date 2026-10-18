@@ -73,7 +73,8 @@ export default function ResultsStep({
       });
 
       if (!res.ok) {
-        throw new Error(`Gagal mengunduh Excel: HTTP ${res.status}`);
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.message || `Gagal mengunduh Excel: HTTP ${res.status}`);
       }
 
       const blob = await res.blob();

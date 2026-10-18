@@ -122,21 +122,25 @@ def generate_screening_excel(
     }
 
     for div_name, candidates in division_results.items():
+        if not candidates:
+            continue
         for cand in candidates:
+            if not cand:
+                continue
             exp_summary_items = []
-            for exp in cand.get("experiences", []):
+            for exp in (cand.get("experiences") or []):
                 t = exp.get("type", "kerja/magang")
                 exp_summary_items.append(f"[{t}] {exp.get('title')} ({exp.get('durationMonths')} bln)")
             exp_summary = " | ".join(exp_summary_items)
 
-            proj_items = [p.get("title", "") for p in cand.get("projects", [])]
+            proj_items = [p.get("title", "") for p in (cand.get("projects") or [])]
             proj_summary = " | ".join(proj_items)
 
-            cert_summary = " | ".join(cand.get("certifications", []))
-            port_links = " | ".join(cand.get("portfolioLinks", []))
-            skills_found = ", ".join(cand.get("skillsFound", []))
+            cert_summary = " | ".join(cand.get("certifications") or [])
+            port_links = " | ".join(cand.get("portfolioLinks") or [])
+            skills_found = ", ".join(cand.get("skillsFound") or [])
 
-            cat_scores = cand.get("categoryScores", {})
+            cat_scores = cand.get("categoryScores") or {}
 
             choice_rank_str = f"Pilihan {cand.get('choiceRank', 1)}"
 
@@ -229,7 +233,11 @@ def generate_screening_excel(
     comp_row = 2
     comp_idx = 1
     for div_name, candidates in division_results.items():
+        if not candidates:
+            continue
         for cand in candidates:
+            if not cand:
+                continue
             c_key = cand.get("fileId") or cand.get("email") or str(cand.get("sourceRowIndex"))
             if c_key in seen_compare:
                 continue
@@ -287,7 +295,7 @@ def generate_screening_excel(
     auto_fit_columns(ws_compare, {15: 55, 16: 35, 5: 30})
 
     # -------------------------------------------------------------
-    # SHEET 2: Perlu Dicek
+    # SHEET 3: Perlu Dicek
     # -------------------------------------------------------------
     ws_review = wb.create_sheet(title="Perlu Dicek")
     ws_review.views.sheetView[0].showGridLines = True
@@ -303,9 +311,11 @@ def generate_screening_excel(
     ws_review.append([sanitize_excel_cell(h) for h in review_headers])
     style_header_row(ws_review, 1, len(review_headers), fill_color="B45309")
 
-    review_list = ranking_data.get("reviewList", [])
+    review_list = ranking_data.get("reviewList") or []
     rev_row = 2
     for item in review_list:
+        if not item:
+            continue
         rev_data = [
             item.get("rowIndex") or "-",
             sanitize_excel_cell(item.get("name")),
@@ -327,7 +337,7 @@ def generate_screening_excel(
     auto_fit_columns(ws_review, {5: 60, 4: 30, 6: 35})
 
     # -------------------------------------------------------------
-    # SHEET 3: Ringkasan Lowongan
+    # SHEET 4: Ringkasan Lowongan
     # -------------------------------------------------------------
     ws_summary = wb.create_sheet(title="Ringkasan Lowongan")
     ws_summary.views.sheetView[0].showGridLines = True
@@ -339,46 +349,55 @@ def generate_screening_excel(
     ws_summary.append(["Pernyataan Etika:", "Skor adalah alat bantu pengurutan, bukan keputusan otomatis. Rekruter yang menentukan hasil akhir."])
     ws_summary.append(["Keterbatasan Sistem:", "Kompetensi non-teknis hanya terdeteksi jika tertulis eksplisit di CV. Kualitas estetika portofolio visual/konten tidak dinilai."])
     ws_summary.append(["Waktu Proses:", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
-    ws_summary.append(["Total Berkas Diproses:", ranking_data.get("meta", {}).get("totalProcessed", 0)])
+    ws_summary.append(["Total Berkas Diproses:", (ranking_data.get("meta") or {}).get("totalProcessed", 0)])
     ws_summary.append(["Total Perlu Dicek:", len(review_list)])
     ws_summary.append([])
 
     s_row = 9
     for div_name, profile in profiles_by_division.items():
-        ws_summary.cell(row=s_row, column=1, value=f"DIVISI: {div_name.upper()} - {profile.get('title', '')}")
+        if not profile:
+            continue
+        title_str = profile.get("title") or ""
+        ws_summary.cell(row=s_row, column=1, value=f"DIVISI: {str(div_name).upper()} - {title_str}")
         ws_summary.cell(row=s_row, column=1).font = Font(name="Calibri", size=12, bold=True, color="FFFFFF")
         ws_summary.cell(row=s_row, column=1).fill = PatternFill(start_color="334155", end_color="334155", fill_type="solid")
         ws_summary.merge_cells(start_row=s_row, start_column=1, end_row=s_row, end_column=2)
         s_row += 1
 
-        jd_preview = (profile.get("jd") or "")[:200] + ("..." if len(profile.get("jd", "")) > 200 else "")
+        jd_text = profile.get("jd") or ""
+        jd_preview = jd_text[:200] + ("..." if len(jd_text) > 200 else "")
         ws_summary.append(["Deskripsi JD Singkat:", jd_preview])
         
         # Hard Requirements
-        hard_req = profile.get("hardRequirements", {})
+        hard_req = profile.get("hardRequirements") or {}
         hard_desc = []
         if hard_req.get("minGpa"):
             hard_desc.append(f"Min IPK: {hard_req.get('minGpa')}")
         if hard_req.get("allowedMajors"):
-            hard_desc.append(f"Jurusan: {', '.join(hard_req.get('allowedMajors'))}")
+            hard_desc.append(f"Jurusan: {', '.join(hard_req.get('allowedMajors') or [])}")
         if hard_req.get("mandatorySkills"):
-            ms = hard_req.get("mandatorySkills", {})
-            hard_desc.append(f"Skill Wajib ({ms.get('rule')}): {', '.join(ms.get('items', []))}")
+            ms = hard_req.get("mandatorySkills") or {}
+            items = ms.get("items") or []
+            rule_str = ms.get("rule") or "all"
+            hard_desc.append(f"Skill Wajib ({rule_str}): {', '.join(items)}")
         ws_summary.append(["Syarat Wajib (Hard Req):", " | ".join(hard_desc) if hard_desc else "Tidak ada syarat wajib"])
 
         # Bobot Kategori
         weights_desc = []
-        for ck, cv in profile.get("categories", {}).items():
-            if cv.get("active"):
-                weights_desc.append(f"{cv.get('label')}: {cv.get('weight')}%")
+        categories = profile.get("categories") or {}
+        for ck, cv in categories.items():
+            if cv and cv.get("active"):
+                weights_desc.append(f"{cv.get('label', ck)}: {cv.get('weight', 0)}%")
         ws_summary.append(["Bobot Kategori Aktif:", " | ".join(weights_desc)])
 
         # Metode Fit IDF
-        fit_method = ranking_data.get("meta", {}).get("fitMethods", {}).get(div_name, "Fit korpus batch")
+        meta_dict = ranking_data.get("meta") or {}
+        fit_dict = meta_dict.get("fitMethods") or {}
+        fit_method = fit_dict.get(div_name, "Fit korpus batch")
         ws_summary.append(["Metode TF-IDF Fit:", fit_method])
 
-        cand_count = len(division_results.get(div_name, []))
-        ws_summary.append(["Jumlah Pelamar Dinilai:", cand_count])
+        cand_list = division_results.get(div_name) or []
+        ws_summary.append(["Jumlah Pelamar Dinilai:", len(cand_list)])
         ws_summary.append([])
         s_row += 7
 
