@@ -1,6 +1,6 @@
 # Arsitektur Sistem: CV Screener
 
-Aplikasi internal berbasis web untuk menyaring dan memeringkatkan berkas CV pelamar (level intern / fresh graduate) lintas banyak divisi di Soko Financial.
+Aplikasi internal berbasis web untuk menyaring dan memeringkatkan berkas CV pelamar (level intern / fresh graduate) lintas banyak divisi.
 
 ---
 

@@ -348,10 +348,10 @@ def generate_screening_excel(
     ws_summary = wb.create_sheet(title="Ringkasan Lowongan")
     ws_summary.views.sheetView[0].showGridLines = True
 
-    ws_summary.append(["RINGKASAN PROSES SCREENING CV - SOKO FINANCIAL"])
+    ws_summary.append(["RINGKASAN PROSES SCREENING CV"])
     ws_summary.cell(row=1, column=1).font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
 
-    ws_summary.append(["Keterangan Kerahasiaan:", "RAHASIA - Hanya untuk keperluan rekrutmen internal Soko Financial."])
+    ws_summary.append(["Keterangan Kerahasiaan:", "RAHASIA - Hanya untuk keperluan rekrutmen internal."])
     ws_summary.append(["Pernyataan Etika:", "Skor adalah alat bantu pengurutan, bukan keputusan otomatis. Rekruter yang menentukan hasil akhir."])
     ws_summary.append(["Keterbatasan Sistem:", "Kompetensi non-teknis hanya terdeteksi jika tertulis eksplisit di CV. Kualitas estetika portofolio visual/konten tidak dinilai."])
     ws_summary.append(["Waktu Proses:", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")])

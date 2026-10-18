@@ -1,4 +1,4 @@
-# CV Screener - Soko Financial
+# CV Screener
 
 Aplikasi web internal penyaring dan pemeringkat CV pelamar multi-divisi (level intern/fresh graduate) menggunakan **Next.js (App Router, TypeScript, Tailwind)** dan **Python Serverless Functions di Vercel**.
 
@@ -101,4 +101,4 @@ npm run build
 
 ## Lisensi & Privasi
 
-Proyek ini merupakan perangkat lunak internal eksklusif milik **Soko Financial**. Seluruh data pelamar bersifat rahasia dan dilindungi oleh undang-undang perlindungan data pribadi.
+Proyek ini merupakan perangkat lunak internal rekrutmen. Seluruh data pelamar bersifat rahasia dan dilindungi oleh prinsip perlindungan data pribadi.

@@ -107,7 +107,7 @@ export default function HomePage() {
                   V1.0
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">Soko Financial &bull; Internal Recruitment</p>
+              <p className="text-[11px] text-slate-400">Internal Recruitment Portal</p>
             </div>
           </div>
 
@@ -228,7 +228,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        CV Screener V1.0 &bull; Soko Financial &bull; Zero Server Storage &bull; Data Terenkripsi & Dirahasiakan
+        CV Screener V1.0 &bull; Zero Server Storage &bull; Data Terenkripsi & Dirahasiakan
       </footer>
     </div>
   );
