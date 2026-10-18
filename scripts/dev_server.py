@@ -50,8 +50,19 @@ class DevDispatcherHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            # Import atau reload modul secara dinamis
-            mod = importlib.import_module(module_name)
+            # Auto-reload submodul _lib dan endpoint handler secara dinamis saat pengembangan
+            for sub in ["_lib.excel", "_lib.scoring", "_lib.auth", "_lib.drive", "_lib.extraction"]:
+                if sub in sys.modules:
+                    try:
+                        importlib.reload(sys.modules[sub])
+                    except Exception:
+                        pass
+
+            if module_name in sys.modules:
+                mod = importlib.reload(sys.modules[module_name])
+            else:
+                mod = importlib.import_module(module_name)
+
             handler_class = getattr(mod, "handler")
             
             # Buat instance handler dan jalankan method yang sesuai
