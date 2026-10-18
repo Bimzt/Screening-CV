@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { JobProfile, RankingResponse } from "@/lib/types";
 import { RawCsvRow } from "@/lib/csv";
-import { DEFAULT_EXAMPLE_PROFILES } from "@/lib/defaultProfiles";
+import { DEFAULT_EXAMPLE_PROFILES, DEFAULT_PROFILES_VERSION } from "@/lib/defaultProfiles";
 import { getLocalData, saveLocalData } from "@/lib/idb";
 import ProfileManager from "@/components/ProfileManager";
 import CsvStep from "@/components/CsvStep";
@@ -36,16 +36,24 @@ export default function HomePage() {
   const [isQuickTestOpen, setIsQuickTestOpen] = useState(false);
 
 
-  // Muat data lokal jika ada
+  // Muat data lokal jika ada (otomatis sinkronkan jika ada versi profil baru di repo)
   useEffect(() => {
     async function loadStored() {
+      const savedVersion = await getLocalData<string>("profiles_version");
       const savedProfiles = await getLocalData<JobProfile[]>("profiles_state");
-      if (savedProfiles && savedProfiles.length >= DEFAULT_EXAMPLE_PROFILES.length) {
+
+      if (savedVersion !== DEFAULT_PROFILES_VERSION) {
+        setProfiles(DEFAULT_EXAMPLE_PROFILES);
+        await saveLocalData("profiles_state", DEFAULT_EXAMPLE_PROFILES);
+        await saveLocalData("profiles_version", DEFAULT_PROFILES_VERSION);
+      } else if (savedProfiles && savedProfiles.length > 0) {
         setProfiles(savedProfiles);
       } else {
         setProfiles(DEFAULT_EXAMPLE_PROFILES);
-        saveLocalData("profiles_state", DEFAULT_EXAMPLE_PROFILES);
+        await saveLocalData("profiles_state", DEFAULT_EXAMPLE_PROFILES);
+        await saveLocalData("profiles_version", DEFAULT_PROFILES_VERSION);
       }
+
       const savedRank = await getLocalData<RankingResponse>("last_ranking_response");
       if (savedRank) {
         setRankingData(savedRank);
@@ -57,6 +65,7 @@ export default function HomePage() {
   const handleProfilesChange = (updated: JobProfile[]) => {
     setProfiles(updated);
     saveLocalData("profiles_state", updated);
+    saveLocalData("profiles_version", DEFAULT_PROFILES_VERSION);
   };
 
   const handleStartProcessing = (rows: RawCsvRow[]) => {
