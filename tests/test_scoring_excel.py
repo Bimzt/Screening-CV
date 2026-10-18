@@ -245,3 +245,62 @@ def test_dual_choice_ranking_and_recommendation():
     assert ws_comp.cell(row=2, column=11).value == "Graphic Designer"
     assert ws_comp.cell(row=2, column=14).value == "Pilihan 2"
 
+
+def test_excel_illegal_characters_sanitization():
+    """
+    Menguji bahwa teks CV dengan karakter kontrol ilegal XML (ASCII 0-31)
+    dibersihkan secara otomatis dan tidak menyebabkan openpyxl IllegalCharacterError.
+    """
+    profile = {
+        "division": "Staff",
+        "title": "Staff Umum",
+        "jd": "Deskripsi pekerjaan staff umum.",
+        "categories": {
+            "experience": {"label": "Pengalaman", "weight": 100, "active": True},
+        },
+    }
+
+    # Teks pengalaman mengandung karakter kontrol seperti vertical tab (\x0b), form feed (\x0c), null (\x00)
+    cand = {
+        "fileId": "cand_control_chars",
+        "candidateName": "Pelamar Karakter Kontrol",
+        "divisionChoices": ["Staff"],
+        "fields": {
+            "name": "Pelamar \x0b Karakter \x0c Kontrol",
+            "email": "test\x01@gmail.com",
+            "phone": "08123\x02456",
+            "university": "Universitas \x03 Indonesia",
+            "major": "Manajemen \x04",
+            "experiences": [
+                {
+                    "title": "Sta of Funding \x0b KSPM FEB UBB \x0c (3 bln)",
+                    "durationMonths": 3,
+                    "type": "kerja/magang"
+                }
+            ],
+            "projects": [{"title": "Project \x05 Rahasia"}],
+            "certifications": ["Cert \x06 Internasional"],
+            "portfolioLinks": ["https://drive.google.com/\x07link"],
+        },
+        "sections": {
+            "experience": "Pengalaman kerja dengan \x0b kontrol chars.",
+        },
+        "fieldStatus": {},
+        "flags": [],
+        "isScanPdf": False,
+    }
+
+    res = rank_candidates_for_batch([cand], {"Staff": profile})
+    # Harus berhasil membuat file Excel tanpa IllegalCharacterError
+    excel_bytes = generate_screening_excel(res, {"Staff": profile})
+    assert len(excel_bytes) > 1000
+
+    wb = load_workbook(io.BytesIO(excel_bytes))
+    ws_rank = wb["Ranking"]
+    # Karakter kontrol \x0b dan \x0c harus sudah dibersihkan
+    exp_cell = ws_rank.cell(row=2, column=12).value
+    assert "\x0b" not in exp_cell
+    assert "\x0c" not in exp_cell
+    assert "Sta of Funding" in exp_cell
+
+

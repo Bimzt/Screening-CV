@@ -10,19 +10,25 @@ from typing import Dict, Any, List
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 
 
 def sanitize_excel_cell(val: Any) -> Any:
     """
-    Mitigasi Formula Injection:
-    Jika nilai bertipe string dan diawali =, +, -, @, beri awalan tanda petik (')
-    agar program spreadsheet mengevaluasinya sebagai teks biasa.
+    1. Mitigasi Karakter Ilegal XML di openpyxl:
+       Bersihkan karakter kontrol non-printable (ASCII 0-8, 11-12, 14-31)
+       yang sering terbawa dari ekstraksi PDF teks.
+    2. Mitigasi Formula Injection:
+       Jika nilai bertipe string dan diawali =, +, -, @, beri awalan tanda petik (')
+       agar program spreadsheet mengevaluasinya sebagai teks biasa.
     """
     if val is None:
         return ""
     if isinstance(val, (int, float)):
         return val
-    s = str(val).strip()
+    s = str(val)
+    # Hapus karakter kontrol XML ilegal agar openpyxl tidak melempar IllegalCharacterError
+    s = ILLEGAL_CHARACTERS_RE.sub("", s).strip()
     if s.startswith(("=", "+", "-", "@")):
         return "'" + s
     return s
@@ -357,7 +363,7 @@ def generate_screening_excel(
     for div_name, profile in profiles_by_division.items():
         if not profile:
             continue
-        title_str = profile.get("title") or ""
+        title_str = sanitize_excel_cell(profile.get("title") or "")
         ws_summary.cell(row=s_row, column=1, value=f"DIVISI: {str(div_name).upper()} - {title_str}")
         ws_summary.cell(row=s_row, column=1).font = Font(name="Calibri", size=12, bold=True, color="FFFFFF")
         ws_summary.cell(row=s_row, column=1).fill = PatternFill(start_color="334155", end_color="334155", fill_type="solid")
@@ -365,7 +371,7 @@ def generate_screening_excel(
         s_row += 1
 
         jd_text = profile.get("jd") or ""
-        jd_preview = jd_text[:200] + ("..." if len(jd_text) > 200 else "")
+        jd_preview = sanitize_excel_cell(jd_text[:200] + ("..." if len(jd_text) > 200 else ""))
         ws_summary.append(["Deskripsi JD Singkat:", jd_preview])
         
         # Hard Requirements
@@ -380,7 +386,7 @@ def generate_screening_excel(
             items = ms.get("items") or []
             rule_str = ms.get("rule") or "all"
             hard_desc.append(f"Skill Wajib ({rule_str}): {', '.join(items)}")
-        ws_summary.append(["Syarat Wajib (Hard Req):", " | ".join(hard_desc) if hard_desc else "Tidak ada syarat wajib"])
+        ws_summary.append(["Syarat Wajib (Hard Req):", sanitize_excel_cell(" | ".join(hard_desc) if hard_desc else "Tidak ada syarat wajib")])
 
         # Bobot Kategori
         weights_desc = []
@@ -388,13 +394,13 @@ def generate_screening_excel(
         for ck, cv in categories.items():
             if cv and cv.get("active"):
                 weights_desc.append(f"{cv.get('label', ck)}: {cv.get('weight', 0)}%")
-        ws_summary.append(["Bobot Kategori Aktif:", " | ".join(weights_desc)])
+        ws_summary.append(["Bobot Kategori Aktif:", sanitize_excel_cell(" | ".join(weights_desc))])
 
         # Metode Fit IDF
         meta_dict = ranking_data.get("meta") or {}
         fit_dict = meta_dict.get("fitMethods") or {}
         fit_method = fit_dict.get(div_name, "Fit korpus batch")
-        ws_summary.append(["Metode TF-IDF Fit:", fit_method])
+        ws_summary.append(["Metode TF-IDF Fit:", sanitize_excel_cell(fit_method)])
 
         cand_list = division_results.get(div_name) or []
         ws_summary.append(["Jumlah Pelamar Dinilai:", len(cand_list)])
