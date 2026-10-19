@@ -49,22 +49,22 @@
   "categories": {
     "experience": {
       "label": "Pengalaman Layanan / Organisasi",
-      "weight": 35,
+      "weight": 30,
       "active": true
     },
     "projects": {
       "label": "Project / Penanganan Kasus",
-      "weight": 20,
+      "weight": 10,
       "active": true
     },
     "cert_edu": {
       "label": "Sertifikasi & Pendidikan",
-      "weight": 15,
+      "weight": 25,
       "active": true
     },
     "competencies": {
       "label": "Kompetensi",
-      "weight": 30,
+      "weight": 35,
       "active": true
     }
   },

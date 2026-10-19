@@ -47,22 +47,22 @@
   "categories": {
     "experience": {
       "label": "Pengalaman",
-      "weight": 35,
+      "weight": 30,
       "active": true
     },
     "projects": {
       "label": "Project / Portofolio Data",
-      "weight": 30,
+      "weight": 10,
       "active": true
     },
     "cert_edu": {
       "label": "Sertifikasi & Pendidikan",
-      "weight": 20,
+      "weight": 25,
       "active": true
     },
     "competencies": {
       "label": "Kompetensi",
-      "weight": 15,
+      "weight": 35,
       "active": true
     }
   },

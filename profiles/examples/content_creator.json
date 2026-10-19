@@ -50,22 +50,22 @@
   "categories": {
     "projects": {
       "label": "Portofolio Video & Konten",
-      "weight": 40,
+      "weight": 10,
       "active": true
     },
     "experience": {
       "label": "Pengalaman Produksi Konten",
-      "weight": 25,
+      "weight": 30,
       "active": true
     },
     "competencies": {
       "label": "Kompetensi Kreatif & Editing",
-      "weight": 25,
+      "weight": 35,
       "active": true
     },
     "cert_edu": {
       "label": "Sertifikasi & Pendidikan",
-      "weight": 10,
+      "weight": 25,
       "active": true
     }
   },

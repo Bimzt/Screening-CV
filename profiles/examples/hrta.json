@@ -48,22 +48,22 @@
   "categories": {
     "experience": {
       "label": "Pengalaman Rekrutmen & Organisasi",
-      "weight": 35,
+      "weight": 30,
       "active": true
     },
     "projects": {
       "label": "Project / Portofolio HR",
-      "weight": 25,
+      "weight": 10,
       "active": true
     },
     "cert_edu": {
       "label": "Sertifikasi & Pendidikan",
-      "weight": 20,
+      "weight": 25,
       "active": true
     },
     "competencies": {
       "label": "Kompetensi",
-      "weight": 20,
+      "weight": 35,
       "active": true
     }
   },

@@ -49,27 +49,27 @@
   "categories": {
     "experience": {
       "label": "Pengalaman Organisasi & Kerja Sama",
-      "weight": 35,
+      "weight": 30,
       "active": true
     },
     "projects": {
       "label": "Project / Proposal Kemitraan",
-      "weight": 30,
+      "weight": 10,
       "active": true
     },
     "cert_edu": {
       "label": "Sertifikasi & Pendidikan",
-      "weight": 15,
+      "weight": 25,
       "active": true
     },
     "competencies": {
       "label": "Kompetensi",
-      "weight": 20,
+      "weight": 35,
       "active": true
     }
   },
   "thresholds": {
-    "durationMonths": 12,
+    "durationMonths": 6,
     "projectsCount": 2
   }
 }
