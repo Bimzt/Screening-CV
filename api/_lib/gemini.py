@@ -10,9 +10,21 @@ import json
 import urllib.request
 import urllib.error
 from typing import Dict, Any, List, Optional
-from .config import MAX_SECTION_TEXT_CHARS
 
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+
+
+def _safe_float(val: Any, default: float = 0.0) -> float:
+    """Konversi aman nilai skor AI yang mungkin berformat string seperti '85', '85/100', atau '85%'."""
+    if isinstance(val, (int, float)):
+        return float(val)
+    if isinstance(val, str):
+        val_clean = val.split("/")[0].replace("%", "").strip()
+        try:
+            return float(val_clean)
+        except ValueError:
+            return default
+    return default
 
 
 def evaluate_candidates_tier2(
@@ -22,16 +34,21 @@ def evaluate_candidates_tier2(
     api_key: Optional[str] = None
 ) -> Dict[str, Dict[str, Any]]:
     """
-    Mengevaluasi hingga max_candidates teratas dalam satu divisi menggunakan Gemini Flash.
+    Mengevaluasi hingga max_candidates teratas dalam satu divisi menggunakan Gemini 3.8 Flash (atau model yang dikonfigurasi).
     Mengembalikan dictionary: { fileId: { contextualScore, practicalLevel, executiveSummary, keyStrength } }
     Jika GEMINI_API_KEY tidak disetel atau terjadi error koneksi, mengembalikan dict kosong secara graceful.
     """
-    key = api_key or os.environ.get("GEMINI_API_KEY")
+    key = (api_key or os.environ.get("GEMINI_API_KEY", "")).strip()
     if not key:
         return {}
 
     if not candidates:
         return {}
+
+    # Ambil konfigurasi model (default: gemini-3.8-flash)
+    model_name = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip()
+    if model_name.startswith("models/"):
+        model_name = model_name[len("models/"):]
 
     target_candidates = candidates[:max_candidates]
     div_name = profile.get("division", "Umum")
@@ -41,12 +58,14 @@ def evaluate_candidates_tier2(
     # Ringkas profil kandidat untuk prompt
     candidate_prompts = []
     for idx, c in enumerate(target_candidates, start=1):
-        c_id = c.get("fileId") or c.get("email") or str(c.get("sourceRowIndex") or idx)
+        c_id = str(c.get("fileId") or c.get("email") or c.get("sourceRowIndex") or c.get("rank") or idx)
         name = c.get("name") or c.get("candidateName") or f"Pelamar #{idx}"
         
         # Ringkasan pengalaman
         exp_list = []
         for exp in (c.get("experiences") or [])[:5]:
+            if not exp:
+                continue
             if isinstance(exp, dict):
                 t = exp.get("type", "kerja/magang")
                 role = exp.get("title") or exp.get("role") or ""
@@ -54,20 +73,35 @@ def evaluate_candidates_tier2(
                 exp_list.append(f"- [{t}] {role} ({dur} bln)")
             elif isinstance(exp, str):
                 exp_list.append(f"- {exp[:100]}")
+            else:
+                exp_list.append(f"- {str(exp)[:100]}")
         exp_text = "\n".join(exp_list) if exp_list else "Tidak ada data pengalaman terstruktur."
 
         # Ringkasan proyek
         proj_list = []
         for p in (c.get("projects") or [])[:4]:
+            if not p:
+                continue
             if isinstance(p, dict):
                 proj_list.append(f"- {p.get('title', '')}")
             elif isinstance(p, str):
                 proj_list.append(f"- {p[:80]}")
+            else:
+                proj_list.append(f"- {str(p)[:80]}")
         proj_text = "\n".join(proj_list) if proj_list else "Tidak ada data proyek terstruktur."
 
         # Skills & Sertifikasi
-        skills = ", ".join(c.get("skillsFound") or [])[:200] or "-"
-        certs = ", ".join(str(ct.get("title") if isinstance(ct, dict) else ct) for ct in (c.get("certifications") or []))[:200] or "-"
+        skills = ", ".join(str(s) for s in (c.get("skillsFound") or []) if s)[:200] or "-"
+        
+        cert_items = []
+        for ct in (c.get("certifications") or []):
+            if not ct:
+                continue
+            if isinstance(ct, dict):
+                cert_items.append(str(ct.get("title") or ct.get("name") or ""))
+            else:
+                cert_items.append(str(ct))
+        certs = ", ".join(cert_items)[:200] or "-"
 
         candidate_prompts.append({
             "candidateId": c_id,
@@ -80,13 +114,6 @@ def evaluate_candidates_tier2(
             "skillsFound": skills,
             "certifications": certs,
         })
-
-    system_instruction = (
-        "Anda adalah Senior HR Talent Assessor & Recruiting Lead. "
-        "Tugas Anda adalah menilai secara kritis dan objektif kedalaman pengalaman riil pelamar kerja "
-        "dibandingkan dengan Job Description. Bedakan pelamar yang memiliki rekam jejak praktis nyata "
-        "(memimpin, merancang, mengimplementasikan, eksekusi mandiri) vs pelamar yang hanya mencantumkan kata kunci / teori dasar."
-    )
 
     user_prompt = f"""LOWONGAN DIVISI: {div_name} ({div_title})
 DESKRIPSI PEKERJAAN (JD):
@@ -115,7 +142,7 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
   ]
 }}"""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
     payload = {
         "contents": [
             {
@@ -137,7 +164,7 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=12) as response:
+        with urllib.request.urlopen(req, timeout=10) as response:
             res_body = response.read().decode("utf-8")
             res_json = json.loads(res_body)
 
@@ -149,15 +176,36 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
         if not text_out:
             return {}
 
-        parsed_eval = json.loads(text_out)
-        eval_list = parsed_eval.get("evaluations", [])
+        raw_text = text_out.strip()
+        # Bersihkan format markdown block jika model membungkusnya dalam ```json ... ```
+        if raw_text.startswith("```"):
+            lines = raw_text.splitlines()
+            if lines and lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            raw_text = "\n".join(lines).strip()
+
+        parsed_eval = json.loads(raw_text)
+        
+        # Dukung baik format {"evaluations": [...]} maupun array langsung [...]
+        if isinstance(parsed_eval, list):
+            eval_list = parsed_eval
+        elif isinstance(parsed_eval, dict):
+            eval_list = parsed_eval.get("evaluations", [])
+            if not eval_list and "candidates" in parsed_eval:
+                eval_list = parsed_eval.get("candidates", [])
+        else:
+            eval_list = []
 
         result_map = {}
         for ev in eval_list:
+            if not isinstance(ev, dict):
+                continue
             cid = ev.get("candidateId")
             if cid:
                 result_map[str(cid)] = {
-                    "contextualScore": float(ev.get("contextualScore", 0)),
+                    "contextualScore": _safe_float(ev.get("contextualScore", 0)),
                     "practicalLevel": str(ev.get("practicalLevel", "Sedang")),
                     "executiveSummary": str(ev.get("executiveSummary", "")),
                     "keyStrength": str(ev.get("keyStrength", "")),

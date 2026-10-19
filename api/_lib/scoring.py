@@ -515,8 +515,8 @@ def rank_candidates_for_batch(
             ai_evals = evaluate_candidates_tier2(ranked_list, profile, max_candidates=10)
             if ai_evals:
                 for item in ranked_list:
-                    c_key = item.get("fileId") or item.get("email") or str(item.get("sourceRowIndex") or item.get("rank"))
-                    ev = ai_evals.get(str(c_key))
+                    c_key = str(item.get("fileId") or item.get("email") or item.get("sourceRowIndex") or item.get("rank") or "")
+                    ev = ai_evals.get(c_key) or ai_evals.get(str(item.get("rank", "")))
                     if ev:
                         item["aiEvaluation"] = ev
                         summary = ev.get("executiveSummary")

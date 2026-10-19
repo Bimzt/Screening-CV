@@ -377,3 +377,53 @@ def test_batch_ranking_with_tier2_ai_evaluation():
         assert "Kepemimpinan Proyek" in ai_val
 
 
+def test_tier2_gemini_edge_cases_and_markdown_stripping():
+    from unittest.mock import patch, MagicMock
+    from api._lib.gemini import evaluate_candidates_tier2, _safe_float
+
+    # Test _safe_float
+    assert _safe_float(95) == 95.0
+    assert _safe_float("85/100") == 85.0
+    assert _safe_float("90%") == 90.0
+    assert _safe_float("invalid", default=50.0) == 50.0
+
+    # Mock response Gemini dengan pembungkus markdown ```json ... ```
+    mock_payload = {
+        "candidates": [
+            {
+                "content": {
+                    "parts": [
+                        {
+                            "text": "```json\n{\n  \"evaluations\": [\n    {\n      \"candidateId\": \"c_test\",\n      \"contextualScore\": \"88/100\",\n      \"practicalLevel\": \"Tinggi\",\n      \"executiveSummary\": \"Eksekusi nyata terbukti kuat.\",\n      \"keyStrength\": \"Problem Solver\"\n    }\n  ]\n}\n```"
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json_bytes = io.BytesIO(import_json_dumps := __import__("json").dumps(mock_payload).encode("utf-8")).getvalue()
+    mock_resp.__enter__.return_value = mock_resp
+
+    candidates = [
+        {
+            "fileId": "c_test",
+            "name": "Budi Santoso",
+            "experiences": [None, {"title": "HR Lead", "durationMonths": 12, "type": "kerja"}, "Freelance"],
+            "projects": [None, {"title": "Modul TNA"}],
+            "certifications": [None, {"title": "CHRP"}],
+            "skillsFound": ["TNA", None, "Training"]
+        }
+    ]
+    profile = {"division": "HR", "jd": "Menganalisis TNA"}
+
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        res = evaluate_candidates_tier2(candidates, profile, api_key="  dummy_key_with_spaces  ")
+        assert "c_test" in res
+        assert res["c_test"]["contextualScore"] == 88.0
+        assert res["c_test"]["practicalLevel"] == "Tinggi"
+        assert res["c_test"]["keyStrength"] == "Problem Solver"
+
+
+
