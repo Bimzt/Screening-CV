@@ -17,11 +17,12 @@
     "mandatorySkills": {
       "items": [
         "Recruitment",
-        "Screening CV"
+        "Screening CV",
+        "Administrasi HR"
       ],
       "rule": "all"
     },
-    "minGpa": 3.15,
+    "minGpa": 3.0,
     "allowedMajors": [
       "Psikologi",
       "Manajemen SDM",
@@ -35,11 +36,14 @@
     "Interview",
     "Psikotes",
     "Onboarding",
+    "Offboarding",
     "Job Portal",
     "LinkedIn Recruiter",
     "Komunikasi",
     "Google Sheets",
-    "Applicant Tracking System"
+    "Applicant Tracking System",
+    "Employer Branding",
+    "Talent Pool"
   ],
   "categories": {
     "experience": {
