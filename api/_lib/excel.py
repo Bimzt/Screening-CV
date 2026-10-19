@@ -147,6 +147,7 @@ def generate_screening_excel(
         "Skor Kompetensi",
         "Skor Akhir",
         "Status Syarat Wajib",
+        "Evaluasi AI (Gemini)",
         "Pilihan 1 & Skor",
         "Pilihan 2 & Skor",
         "Rekomendasi Sistem",
@@ -241,6 +242,18 @@ def generate_screening_excel(
 
             rec_note = cand.get("recommendationNote") or cand.get("multiDivisionNote") or ""
 
+            # Evaluasi AI Contextual jika ada
+            ai_eval = cand.get("aiEvaluation") or {}
+            ai_eval_text = "-"
+            if ai_eval:
+                ai_score = ai_eval.get("contextualScore", "-")
+                ai_level = ai_eval.get("practicalLevel", "-")
+                ai_summary = ai_eval.get("executiveSummary", "")
+                ai_strength = ai_eval.get("keyStrength", "")
+                ai_eval_text = f"[{ai_level} | Skor {ai_score}] {ai_summary}"
+                if ai_strength:
+                    ai_eval_text += f" | Keunggulan: {ai_strength}"
+
             row_data = [
                 cand.get("division"),
                 cand.get("rank"),
@@ -263,6 +276,7 @@ def generate_screening_excel(
                 cat_scores.get("competencies", 0.0),
                 cand.get("finalScore", 0.0),
                 cand.get("hardRequirementStatus"),
+                ai_eval_text,
                 p1_str,
                 p2_str,
                 rec_note,
@@ -279,9 +293,10 @@ def generate_screening_excel(
             if status_val in status_fills:
                 status_cell.fill = status_fills[status_val]
 
-            # Wrap text untuk kolom alasan dan rekomendasi
-            ws_rank.cell(row=current_row, column=24).alignment = Alignment(wrap_text=True, vertical="top")
+            # Wrap text untuk kolom Evaluasi AI, rekomendasi, dan alasan
+            ws_rank.cell(row=current_row, column=22).alignment = Alignment(wrap_text=True, vertical="top")
             ws_rank.cell(row=current_row, column=25).alignment = Alignment(wrap_text=True, vertical="top")
+            ws_rank.cell(row=current_row, column=26).alignment = Alignment(wrap_text=True, vertical="top")
 
             for c in range(1, len(row_data) + 1):
                 ws_rank.cell(row=current_row, column=c).border = thin_border
@@ -291,7 +306,7 @@ def generate_screening_excel(
     # Freeze header & Auto filter
     ws_rank.freeze_panes = "A2"
     ws_rank.auto_filter.ref = f"A1:{get_column_letter(len(rank_headers))}{max(current_row - 1, 1)}"
-    auto_fit_columns(ws_rank, {24: 45, 25: 50, 12: 45, 13: 35, 15: 30, 27: 35})
+    auto_fit_columns(ws_rank, {22: 45, 25: 45, 26: 50, 12: 45, 13: 35, 15: 30, 28: 35})
 
     # -------------------------------------------------------------
     # SHEET 2: Perbandingan Pilihan 1 & 2 (Master Kandidat)

@@ -304,3 +304,76 @@ def test_excel_illegal_characters_sanitization():
     assert "Sta of Funding" in exp_cell
 
 
+def test_tier2_gemini_graceful_fallback_without_key():
+    from api._lib.gemini import evaluate_candidates_tier2
+    candidates = [{"fileId": "c1", "name": "Budi"}]
+    profile = {"division": "IT", "jd": "Software Engineer"}
+    # Tanpa api_key dan tanpa environment variable -> dict kosong
+    res = evaluate_candidates_tier2(candidates, profile, api_key=None)
+    assert res == {}
+
+
+def test_batch_ranking_with_tier2_ai_evaluation():
+    from unittest.mock import patch
+
+    mock_gemini_response = {
+        "c_1": {
+            "contextualScore": 92.0,
+            "practicalLevel": "Tinggi",
+            "executiveSummary": "Memiliki bukti eksekusi proyek nyata dengan skala terukur.",
+            "keyStrength": "Kepemimpinan Proyek"
+        }
+    }
+
+    cand = {
+        "fileId": "c_1",
+        "candidateName": "Andi Pratama",
+        "divisionChoices": ["IT Support"],
+        "fields": {
+            "name": "Andi Pratama",
+            "email": "andi@example.com",
+            "university": "ITB",
+            "major": "Teknik Informatika",
+            "gpa": 3.8
+        },
+        "sections": {
+            "experience": "Memimpin pengembangan sistem antrian tiket IT.",
+            "projects": "Sistem monitoring server.",
+            "skills": "Python, Linux, Networking"
+        },
+        "fieldStatus": {"gpa": "ok", "major": "ok"},
+        "flags": [],
+        "isScanPdf": False
+    }
+
+    profile = {
+        "division": "IT Support",
+        "title": "IT Support Specialist",
+        "jd": "Menangani troubleshooting hardware, software, dan jaringan.",
+        "categories": {
+            "experience": {"label": "Pengalaman", "weight": 35, "active": True},
+            "projects": {"label": "Project", "weight": 30, "active": True},
+            "cert_edu": {"label": "Pendidikan", "weight": 20, "active": True},
+            "competencies": {"label": "Kompetensi", "weight": 15, "active": True},
+        },
+        "thresholds": {"durationMonths": 6, "projectsCount": 2},
+    }
+
+    with patch("api._lib.scoring.evaluate_candidates_tier2", return_value=mock_gemini_response):
+        ranking_result = rank_candidates_for_batch([cand], {"IT Support": profile})
+        ranked_cand = ranking_result["divisionResults"]["IT Support"][0]
+        assert "aiEvaluation" in ranked_cand
+        assert ranked_cand["aiEvaluation"]["contextualScore"] == 92.0
+        assert "✨ AI:" in ranked_cand["reasons"]
+
+        # Generate excel dan verifikasi kolom Evaluasi AI (kolom 22)
+        excel_bytes = generate_screening_excel(ranking_result, {"IT Support": profile})
+        wb = load_workbook(io.BytesIO(excel_bytes))
+        ws_rank = wb["Ranking"]
+        ai_col_header = ws_rank.cell(row=1, column=22).value
+        assert ai_col_header == "Evaluasi AI (Gemini)"
+        ai_val = ws_rank.cell(row=2, column=22).value
+        assert "[Tinggi | Skor 92.0]" in ai_val
+        assert "Kepemimpinan Proyek" in ai_val
+
+

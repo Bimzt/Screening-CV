@@ -146,6 +146,12 @@ export interface RankedCandidate {
   choice2Result?: ChoiceEvaluationSummary;
   bestFitChoice?: 1 | 2 | "equal";
   recommendationNote?: string;
+  aiEvaluation?: {
+    contextualScore?: number;
+    practicalLevel?: "Tinggi" | "Sedang" | "Dasar" | string;
+    executiveSummary?: string;
+    keyStrength?: string;
+  };
 }
 
 export interface ReviewItem {

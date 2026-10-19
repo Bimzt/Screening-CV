@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Briefcase,
   Layers,
+  Sparkles,
 } from "lucide-react";
 
 interface ResultsStepProps {
@@ -387,6 +388,12 @@ export default function ResultsStep({
                                     Pilihan 1
                                   </span>
                                 )}
+                                {cand.aiEvaluation && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-gradient-to-r from-amber-500/20 to-indigo-500/20 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1">
+                                    <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                                    AI Evaluated
+                                  </span>
+                                )}
                               </div>
                               <div className="text-[11px] text-slate-400">{cand.email || "-"}</div>
                               {info.c1 && info.c2 ? (
@@ -455,6 +462,34 @@ export default function ResultsStep({
                           {isExpanded && (
                             <tr className="bg-slate-950/70">
                               <td colSpan={8} className="p-4 space-y-3 border-t border-slate-800">
+                                {/* Tier 2 AI Contextual Assessment Card */}
+                                {cand.aiEvaluation && (
+                                  <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-500/30 space-y-2 mb-2">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                                      <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                                        <Sparkles className="w-4 h-4 text-amber-400" />
+                                        Tier 2 AI Contextual Assessment (Gemini)
+                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300">
+                                          Tingkat Praktikal: <strong className="text-white">{cand.aiEvaluation.practicalLevel}</strong>
+                                        </span>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono font-bold">
+                                          Skor AI: {cand.aiEvaluation.contextualScore}/100
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <p className="text-xs text-slate-200 leading-relaxed">
+                                      {cand.aiEvaluation.executiveSummary}
+                                    </p>
+                                    {cand.aiEvaluation.keyStrength && (
+                                      <div className="text-[11px] text-amber-200/90">
+                                        <strong>Keunggulan Utama: </strong>{cand.aiEvaluation.keyStrength}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
                                 {/* Dual Choice Comparison Card */}
                                 {(info.c1 || info.p2Name) && (
                                   <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-3 mb-2">
