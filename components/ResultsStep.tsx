@@ -46,7 +46,7 @@ export default function ResultsStep({
     const map: Record<string, Record<string, typeof rankingData.divisionResults[string][0]>> = {};
     for (const [div, cands] of Object.entries(rankingData.divisionResults || {})) {
       for (const c of cands || []) {
-        const key = c.fileId || c.email || String(c.sourceRowIndex);
+        const key = c.fileId || c.email || (c.sourceRowIndex !== undefined && c.sourceRowIndex !== null ? String(c.sourceRowIndex) : "") || c.name;
         if (key) {
           if (!map[key]) map[key] = {};
           map[key][div] = c;
@@ -58,7 +58,7 @@ export default function ResultsStep({
 
   // Helper untuk mendapatkan info komparasi pilihan pelamar
   const getCandidateChoiceInfo = (cand: typeof rankingData.divisionResults[string][0]) => {
-    const candKey = cand.fileId || cand.email || String(cand.sourceRowIndex);
+    const candKey = cand.fileId || cand.email || (cand.sourceRowIndex !== undefined && cand.sourceRowIndex !== null ? String(cand.sourceRowIndex) : "") || cand.name;
     const peerMap = candidatesPeerMap[candKey] || {};
 
     let choices = cand.divisionChoices || [];
@@ -159,6 +159,7 @@ export default function ResultsStep({
     if (confirm("Apakah Anda yakin ingin menghapus data screening lokal dari browser ini?")) {
       await clearLocalData();
       alert("Data lokal berhasil dibersihkan.");
+      onStartNewBatch();
     }
   };
 

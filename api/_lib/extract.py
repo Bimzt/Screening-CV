@@ -5,6 +5,7 @@ tautan portofolio, entri pengalaman bertag (kerja/magang, organisasi, volunteer)
 """
 
 import re
+import datetime
 from typing import Dict, Any, List, Optional, Tuple
 
 # Regex Email
@@ -267,6 +268,11 @@ def estimate_duration_months(text: str) -> int:
     Memperkirakan durasi pengalaman dalam satuan bulan dari teks tanggal.
     Contoh: '3 bulan', '6 months', 'Jan 2022 - Des 2022' (12 bulan).
     """
+    now_dt = datetime.datetime.now()
+    curr_year = now_dt.year
+    curr_month = now_dt.month
+    present_keywords = ("sekarang", "present", "now", "saat ini", "current")
+
     # 1. Pola eksplisit 'X bulan'
     bulan_match = re.search(r"(\d+)\s*(?:bulan|months?|bln)", text, re.IGNORECASE)
     if bulan_match:
@@ -275,9 +281,9 @@ def estimate_duration_months(text: str) -> int:
         except ValueError:
             pass
 
-    # 2. Pola bulan + tahun: 'Jan 2022 - Des 2022' atau 'Januari 2023 - Present'
+    # 2. Pola bulan + tahun: 'Jan 2022 - Des 2022' atau 'Januari 2026 - Present/Now'
     month_range_pattern = re.compile(
-        r"\b([A-Za-z]+)\s+(20[12][0-9])\s*[-–]\s*([A-Za-z]+)?\s*(20[12][0-9]|sekarang|present)?\b",
+        r"\b([A-Za-z]+)\s+(20[12][0-9])\s*[-–]\s*([A-Za-z]+)?\s*(20[12][0-9]|sekarang|present|now|saat\s*ini|current)?\b",
         re.IGNORECASE
     )
     m_match = month_range_pattern.search(text)
@@ -288,11 +294,11 @@ def estimate_duration_months(text: str) -> int:
         y2_str = (m_match.group(4) or "").lower()
 
         m1 = MONTH_NAMES.get(m1_str, 1)
-        y1 = int(y1_str) if y1_str else 2023
+        y1 = int(y1_str) if y1_str else curr_year
 
-        if y2_str in ("sekarang", "present") or not y2_str:
-            y2 = 2024
-            m2 = MONTH_NAMES.get(m2_str, 12)
+        if y2_str in present_keywords or m2_str in present_keywords or not y2_str:
+            y2 = curr_year
+            m2 = curr_month
         else:
             try:
                 y2 = int(y2_str)
@@ -304,13 +310,13 @@ def estimate_duration_months(text: str) -> int:
         if 1 <= total_months <= 60:
             return total_months
 
-    # 3. Pola tahun '2022 - 2023' (12 bulan)
-    year_range_match = re.search(r"\b(20[12][0-9])\s*[-–]\s*(20[12][0-9]|sekarang|present)\b", text, re.IGNORECASE)
+    # 3. Pola tahun '2022 - 2023' atau '2025 - Sekarang'
+    year_range_match = re.search(r"\b(20[12][0-9])\s*[-–]\s*(20[12][0-9]|sekarang|present|now|saat\s*ini|current)\b", text, re.IGNORECASE)
     if year_range_match:
         try:
             y1 = int(year_range_match.group(1))
             y2_str = year_range_match.group(2).lower()
-            y2 = 2024 if y2_str in ("sekarang", "present") else int(y2_str)
+            y2 = curr_year if y2_str in present_keywords else int(y2_str)
             diff_years = max(1, y2 - y1)
             return min(diff_years * 12, 48)
         except ValueError:

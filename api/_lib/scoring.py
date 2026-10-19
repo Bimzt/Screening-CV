@@ -112,19 +112,30 @@ def evaluate_hard_requirements(
     # 1. Evaluasi IPK Minimum
     min_gpa = hard_req.get("minGpa")
     if min_gpa is not None:
-        has_any_rule = True
-        gpa_val = fields.get("gpa")
-        gpa_stat = field_status.get("gpa", "tidak_ditemukan")
+        try:
+            min_gpa_float = float(min_gpa)
+            has_any_rule = True
+            gpa_raw = fields.get("gpa")
+            gpa_stat = field_status.get("gpa", "tidak_ditemukan")
 
-        if gpa_stat in ("ambigu", "tidak_ditemukan") or gpa_val is None:
-            needs_review = True
-            reasons.append(f"IPK tidak terbaca atau ambigu (syarat minimum {min_gpa:.2f}).")
-        else:
-            if gpa_val >= min_gpa:
-                reasons.append(f"IPK {gpa_val:.2f} memenuhi syarat (min {min_gpa:.2f}).")
+            gpa_val = None
+            if gpa_raw is not None:
+                try:
+                    gpa_val = float(str(gpa_raw).replace(",", "."))
+                except (ValueError, TypeError):
+                    gpa_val = None
+
+            if gpa_stat in ("ambigu", "tidak_ditemukan") or gpa_val is None:
+                needs_review = True
+                reasons.append(f"IPK tidak terbaca atau ambigu (syarat minimum {min_gpa_float:.2f}).")
             else:
-                failed = True
-                reasons.append(f"IPK {gpa_val:.2f} di bawah syarat minimum {min_gpa:.2f}.")
+                if gpa_val >= min_gpa_float:
+                    reasons.append(f"IPK {gpa_val:.2f} memenuhi syarat (min {min_gpa_float:.2f}).")
+                else:
+                    failed = True
+                    reasons.append(f"IPK {gpa_val:.2f} di bawah syarat minimum {min_gpa_float:.2f}.")
+        except (ValueError, TypeError):
+            pass
 
     # 2. Evaluasi Jurusan
     allowed_majors = hard_req.get("allowedMajors")
@@ -366,16 +377,32 @@ def rank_candidates_for_batch(
             })
             continue
 
-        for div_name in div_choices:
-            if div_name not in division_groups:
-                division_groups[div_name] = []
-            division_groups[div_name].append(c)
+        for raw_div_name in div_choices:
+            if not raw_div_name:
+                continue
+            # Resolusi nama divisi kanonikal dari profil/alias
+            prof = profiles_by_division.get(raw_div_name)
+            if not prof:
+                for pk, pv in profiles_by_division.items():
+                    if pk.strip().lower() == raw_div_name.strip().lower():
+                        prof = pv
+                        break
+            canonical_div = prof.get("division") if prof else raw_div_name.strip()
+
+            if canonical_div not in division_groups:
+                division_groups[canonical_div] = []
+            division_groups[canonical_div].append(c)
 
     results_by_division = {}
     fit_methods_used = {}
 
     for div_name, div_candidates in division_groups.items():
         profile = profiles_by_division.get(div_name)
+        if not profile:
+            for pk, pv in profiles_by_division.items():
+                if pk.strip().lower() == div_name.strip().lower():
+                    profile = pv
+                    break
 
         if not profile:
             for cand in div_candidates:
