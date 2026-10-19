@@ -427,4 +427,33 @@ def test_tier2_gemini_edge_cases_and_markdown_stripping():
         assert res["c_test"]["keyStrength"] == "Problem Solver"
 
 
+def test_api_evaluate_handler():
+    from unittest.mock import patch, MagicMock
+    from api.evaluate import handler as EvaluateHandler
+
+    class DummyRequest:
+        def makefile(self, *args, **kwargs):
+            return io.BytesIO(b"")
+
+    h = EvaluateHandler.__new__(EvaluateHandler)
+    h.headers = {"X-Requested-With": "XMLHttpRequest"}
+    
+    # CSRF check
+    sent_responses = []
+    def dummy_send(code, data):
+        sent_responses.append((code, data))
+    h._send_json = dummy_send
+
+    with patch("api.evaluate.check_request_auth", return_value=(True, "")):
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"}):
+            h.rfile = io.BytesIO(b'{"candidates": [{"fileId": "c1", "name": "Budi"}], "profile": {"division": "HR"}}')
+            h.headers["Content-Length"] = str(len(h.rfile.getvalue()))
+            with patch("api.evaluate.evaluate_candidates_tier2", return_value={"c1": {"contextualScore": 90.0, "practicalLevel": "Tinggi"}}):
+                h.do_POST()
+                assert len(sent_responses) == 1
+                assert sent_responses[0][0] == 200
+                assert "c1" in sent_responses[0][1]["data"]
+
+
+
 

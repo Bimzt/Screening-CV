@@ -34,6 +34,7 @@ ROUTES = {
     "/api/process": "process",
     "/api/rank": "rank",
     "/api/export": "export",
+    "/api/evaluate": "evaluate",
 }
 
 

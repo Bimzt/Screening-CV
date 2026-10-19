@@ -5,7 +5,7 @@ import {
   RankingResponse,
   JobProfile,
 } from "@/lib/types";
-import { clearLocalData } from "@/lib/idb";
+import { saveLocalData, clearLocalData } from "@/lib/idb";
 import {
   Download,
   Trash2,
@@ -31,7 +31,8 @@ export default function ResultsStep({
   profiles,
   onStartNewBatch,
 }: ResultsStepProps) {
-  const divisions = Object.keys(rankingData.divisionResults);
+  const [rankingState, setRankingState] = useState<RankingResponse>(rankingData);
+  const divisions = Object.keys(rankingState.divisionResults || {});
   const [selectedDivision, setSelectedDivision] = useState<string>(
     divisions[0] || "Semua"
   );
@@ -41,11 +42,18 @@ export default function ResultsStep({
   const [expandedCandidateId, setExpandedCandidateId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [isEvaluatingAi, setIsEvaluatingAi] = useState(false);
+  const [evaluatingSingleId, setEvaluatingSingleId] = useState<string | null>(null);
+  const [aiSuccessMessage, setAiSuccessMessage] = useState<string | null>(null);
 
-  // Peta kandidat lintas divisi agar Pilihan 1 & Pilihan 2 selalu tersinkronisasi (kompatibel data baru & lama)
+  React.useEffect(() => {
+    setRankingState(rankingData);
+  }, [rankingData]);
+
+  // Peta kandidat lintas divisi agar Pilihan 1 & Pilihan 2 selalu tersinkronisasi
   const candidatesPeerMap = React.useMemo(() => {
-    const map: Record<string, Record<string, typeof rankingData.divisionResults[string][0]>> = {};
-    for (const [div, cands] of Object.entries(rankingData.divisionResults || {})) {
+    const map: Record<string, Record<string, typeof rankingState.divisionResults[string][0]>> = {};
+    for (const [div, cands] of Object.entries(rankingState.divisionResults || {})) {
       for (const c of cands || []) {
         const key = c.fileId || c.email || (c.sourceRowIndex !== undefined && c.sourceRowIndex !== null ? String(c.sourceRowIndex) : "") || c.name;
         if (key) {
@@ -55,7 +63,7 @@ export default function ResultsStep({
       }
     }
     return map;
-  }, [rankingData]);
+  }, [rankingState]);
 
   // Helper untuk mendapatkan info komparasi pilihan pelamar
   const getCandidateChoiceInfo = (cand: typeof rankingData.divisionResults[string][0]) => {
@@ -97,7 +105,7 @@ export default function ResultsStep({
   };
 
   const currentCandidates = (
-    rankingData.divisionResults[selectedDivision] || []
+    rankingState.divisionResults[selectedDivision] || []
   ).filter((c) => {
     const info = getCandidateChoiceInfo(c);
     if (statusFilter !== "Semua" && c.hardRequirementStatus !== statusFilter) return false;
@@ -105,6 +113,146 @@ export default function ResultsStep({
     if (choiceFilter === "Pilihan 2" && info.choiceRank !== 2) return false;
     return true;
   });
+
+  const handleRunGeminiAssessment = async () => {
+    const currentList = rankingState.divisionResults[selectedDivision] || [];
+    if (currentList.length === 0) return;
+
+    const currentProfile = profiles.find(
+      (p) => p.division.toLowerCase() === selectedDivision.toLowerCase()
+    ) || { division: selectedDivision, title: selectedDivision, jd: "" };
+
+    setIsEvaluatingAi(true);
+    setAiSuccessMessage(null);
+
+    try {
+      const top10 = currentList.slice(0, 10);
+      const res = await fetch("/api/evaluate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({
+          division: selectedDivision,
+          candidates: top10,
+          profile: currentProfile,
+          maxCandidates: 10,
+        }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.message || `HTTP ${res.status}`);
+      }
+
+      const jsonRes = await res.json();
+      const aiEvals = jsonRes.data || {};
+      const modelUsed = jsonRes.modelUsed || "Gemini";
+
+      const updatedList = currentList.map((cand) => {
+        const cKey = String(cand.fileId || cand.email || cand.sourceRowIndex || cand.rank || "");
+        const ev = aiEvals[cKey] || aiEvals[String(cand.rank)];
+        if (ev) {
+          const summary = ev.executiveSummary || "";
+          return {
+            ...cand,
+            aiEvaluation: {
+              ...ev,
+              modelUsed: ev.modelUsed || modelUsed,
+            },
+            reasons: cand.reasons.includes("[✨ AI:")
+              ? cand.reasons
+              : `[✨ AI: ${summary}] | ${cand.reasons}`,
+          };
+        }
+        return cand;
+      });
+
+      const updatedRanking: RankingResponse = {
+        ...rankingState,
+        divisionResults: {
+          ...rankingState.divisionResults,
+          [selectedDivision]: updatedList,
+        },
+      };
+
+      setRankingState(updatedRanking);
+      await saveLocalData("last_ranking_response", updatedRanking);
+      setAiSuccessMessage(`Berhasil mengevaluasi 10 kandidat teratas divisi ${selectedDivision} dengan ${modelUsed}!`);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Gagal mengevaluasi dengan Gemini AI");
+    } finally {
+      setIsEvaluatingAi(false);
+    }
+  };
+
+  const handleEvaluateSingleCandidate = async (cand: typeof rankingState.divisionResults[string][0]) => {
+    const currentProfile = profiles.find(
+      (p) => p.division.toLowerCase() === cand.division.toLowerCase()
+    ) || { division: cand.division, title: cand.division, jd: "" };
+
+    setEvaluatingSingleId(cand.fileId);
+    try {
+      const res = await fetch("/api/evaluate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({
+          division: cand.division,
+          candidates: [cand],
+          profile: currentProfile,
+          maxCandidates: 1,
+        }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.message || `HTTP ${res.status}`);
+      }
+
+      const jsonRes = await res.json();
+      const aiEvals = jsonRes.data || {};
+      const modelUsed = jsonRes.modelUsed || "Gemini";
+      const cKey = String(cand.fileId || cand.email || cand.sourceRowIndex || cand.rank || "");
+      const ev = aiEvals[cKey] || Object.values(aiEvals)[0];
+
+      if (ev) {
+        const evObj = ev as any;
+        const summary = evObj.executiveSummary || "";
+        const divList = rankingState.divisionResults[cand.division] || [];
+        const updatedList = divList.map((c) => {
+          if (c.fileId === cand.fileId) {
+            return {
+              ...c,
+              aiEvaluation: {
+                ...evObj,
+                modelUsed: evObj.modelUsed || modelUsed,
+              },
+              reasons: c.reasons.includes("[✨ AI:") ? c.reasons : `[✨ AI: ${summary}] | ${c.reasons}`,
+            };
+          }
+          return c;
+        });
+
+        const updatedRanking: RankingResponse = {
+          ...rankingState,
+          divisionResults: {
+            ...rankingState.divisionResults,
+            [cand.division]: updatedList,
+          },
+        };
+        setRankingState(updatedRanking);
+        await saveLocalData("last_ranking_response", updatedRanking);
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Gagal mengevaluasi kandidat dengan Gemini AI");
+    } finally {
+      setEvaluatingSingleId(null);
+    }
+  };
 
   const handleDownloadExcel = async () => {
     setIsExporting(true);
@@ -118,7 +266,7 @@ export default function ResultsStep({
           "X-Requested-With": "XMLHttpRequest",
         },
         body: JSON.stringify({
-          rankingData,
+          rankingData: rankingState,
           profiles,
         }),
       });
@@ -182,6 +330,16 @@ export default function ResultsStep({
 
         <div className="flex flex-wrap items-center gap-2">
           <button
+            onClick={handleRunGeminiAssessment}
+            disabled={isEvaluatingAi || currentCandidates.length === 0}
+            className="px-4 py-2 bg-gradient-to-r from-amber-500/20 via-indigo-500/20 to-purple-500/20 hover:from-amber-500/30 hover:to-purple-500/30 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-lg shadow-amber-500/10 transition-all cursor-pointer disabled:opacity-50"
+            title="Jalankan Evaluasi AI (Google Gemini) untuk 10 kandidat teratas divisi ini"
+          >
+            <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+            <span>{isEvaluatingAi ? "Menganalisis Gemini..." : "✨ Evaluasi AI Gemini"}</span>
+          </button>
+
+          <button
             onClick={handleDownloadExcel}
             disabled={isExporting}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
@@ -208,6 +366,13 @@ export default function ResultsStep({
           </button>
         </div>
       </div>
+
+      {aiSuccessMessage && (
+        <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{aiSuccessMessage}</span>
+        </div>
+      )}
 
       {exportMessage && (
         <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-center gap-2">
@@ -481,7 +646,7 @@ export default function ResultsStep({
                             <tr className="bg-slate-950/70">
                               <td colSpan={8} className="p-4 space-y-3 border-t border-slate-800">
                                 {/* Tier 2 AI Contextual Assessment Card */}
-                                {cand.aiEvaluation && (
+                                {cand.aiEvaluation ? (
                                   <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-500/30 space-y-2 mb-2">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                                       <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
@@ -505,6 +670,21 @@ export default function ResultsStep({
                                         <strong>Keunggulan Utama: </strong>{cand.aiEvaluation.keyStrength}
                                       </div>
                                     )}
+                                  </div>
+                                ) : (
+                                  <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                    <div className="text-xs text-slate-400 flex items-center gap-2">
+                                      <Sparkles className="w-4 h-4 text-slate-500" />
+                                      <span>Belum ada evaluasi AI untuk kandidat ini.</span>
+                                    </div>
+                                    <button
+                                      onClick={() => handleEvaluateSingleCandidate(cand)}
+                                      disabled={evaluatingSingleId === cand.fileId}
+                                      className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto disabled:opacity-50"
+                                    >
+                                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                                      <span>{evaluatingSingleId === cand.fileId ? "Menganalisis..." : "✨ Evaluasi dengan Gemini"}</span>
+                                    </button>
                                   </div>
                                 )}
 
