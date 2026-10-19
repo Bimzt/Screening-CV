@@ -3,6 +3,7 @@ Modul perhitungan skor, TF-IDF vectorizer, evaluasi hard requirements, dan pemer
 Stateless dan deterministic.
 """
 
+import os
 import re
 import math
 from typing import Dict, Any, List, Tuple, Optional
@@ -510,22 +511,54 @@ def rank_candidates_for_batch(
         for rank_num, item in enumerate(ranked_list, start=1):
             item["rank"] = rank_num
 
-        # Tier 2: Evaluasi Kontekstual AI Mendalam untuk Top 10 Kandidat Teratas (Opsi 2)
-        try:
-            ai_evals = evaluate_candidates_tier2(ranked_list, profile, max_candidates=10)
-            if ai_evals:
-                for item in ranked_list:
-                    c_key = str(item.get("fileId") or item.get("email") or item.get("sourceRowIndex") or item.get("rank") or "")
-                    ev = ai_evals.get(c_key) or ai_evals.get(str(item.get("rank", "")))
-                    if ev:
-                        item["aiEvaluation"] = ev
-                        summary = ev.get("executiveSummary")
-                        if summary:
-                            item["reasons"] = f"[✨ AI: {summary}] | {item.get('reasons', '')}"
-        except Exception as e:
-            print(f"[Tier 2 Non-Blocking Error]: {e}")
-
         results_by_division[div_name] = ranked_list
+
+    # -------------------------------------------------------------
+    # Pass 1.5: Tier 2 Evaluasi Kontekstual AI Mendalam (Paralel, Non-Blocking, Max 4.5s)
+    # -------------------------------------------------------------
+    api_key = (os.environ.get("GEMINI_API_KEY") or "").strip()
+    if api_key and results_by_division:
+        from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+
+        division_tasks = {}
+        for div_k, r_list in results_by_division.items():
+            if r_list:
+                prof = profiles_by_division.get(div_k) or {}
+                division_tasks[div_k] = (r_list, prof)
+
+        if division_tasks:
+            def _eval_worker(task_item):
+                d_name, (candidates_list, d_profile) = task_item
+                try:
+                    return d_name, evaluate_candidates_tier2(candidates_list, d_profile, max_candidates=10, api_key=api_key)
+                except Exception as ex:
+                    print(f"[Tier 2 Worker Error for {d_name}]: {ex}")
+                    return d_name, {}
+
+            max_w = min(len(division_tasks), 4)
+            executor = ThreadPoolExecutor(max_workers=max_w)
+            try:
+                futures = {executor.submit(_eval_worker, item): item[0] for item in division_tasks.items()}
+                try:
+                    # Batas waktu total 4.5 detik untuk seluruh batch paralel
+                    for fut in as_completed(futures, timeout=4.5):
+                        try:
+                            d_name, ai_evals = fut.result()
+                            if ai_evals and d_name in results_by_division:
+                                for item in results_by_division[d_name]:
+                                    c_key = str(item.get("fileId") or item.get("email") or item.get("sourceRowIndex") or item.get("rank") or "")
+                                    ev = ai_evals.get(c_key) or ai_evals.get(str(item.get("rank", "")))
+                                    if ev:
+                                        item["aiEvaluation"] = ev
+                                        summary = ev.get("executiveSummary")
+                                        if summary:
+                                            item["reasons"] = f"[✨ AI: {summary}] | {item.get('reasons', '')}"
+                        except Exception:
+                            continue
+                except TimeoutError:
+                    print("[Tier 2 AI Warning] Batas waktu 4.5s tercapai. Melanjutkan dengan data ranking yang sudah siap.")
+            finally:
+                executor.shutdown(wait=False, cancel_futures=True)
 
     # -------------------------------------------------------------
     # Pass 2: Evaluasi & Perbandingan Lintas Pilihan (Pilihan 1 vs Pilihan 2)

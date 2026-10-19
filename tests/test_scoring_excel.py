@@ -359,8 +359,9 @@ def test_batch_ranking_with_tier2_ai_evaluation():
         "thresholds": {"durationMonths": 6, "projectsCount": 2},
     }
 
-    with patch("api._lib.scoring.evaluate_candidates_tier2", return_value=mock_gemini_response):
-        ranking_result = rank_candidates_for_batch([cand], {"IT Support": profile})
+    with patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_test_key"}):
+        with patch("api._lib.scoring.evaluate_candidates_tier2", return_value=mock_gemini_response):
+            ranking_result = rank_candidates_for_batch([cand], {"IT Support": profile})
         ranked_cand = ranking_result["divisionResults"]["IT Support"][0]
         assert "aiEvaluation" in ranked_cand
         assert ranked_cand["aiEvaluation"]["contextualScore"] == 92.0

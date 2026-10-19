@@ -3,6 +3,7 @@ Modul Evaluasi Semantik Tier 2 menggunakan Google Gemini AI (REST API).
 Menganalisis 10 kandidat teratas per divisi untuk membedakan pengalaman riil
 (action verbs, kepemimpinan, kepemilikan proyek) vs klaim kata kunci pasif.
 Bekerja secara stateless via REST API (tanpa dependensi berat) dan graceful fallback jika API key belum disetel.
+Dilengkapi proteksi timeout & fallback otomatis ke gemini-3.5-flash-lite jika model utama sedang sibuk/503.
 """
 
 import os
@@ -12,6 +13,7 @@ import urllib.error
 from typing import Dict, Any, List, Optional
 
 DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+FALLBACK_GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 
 def _safe_float(val: Any, default: float = 0.0) -> float:
@@ -34,9 +36,10 @@ def evaluate_candidates_tier2(
     api_key: Optional[str] = None
 ) -> Dict[str, Dict[str, Any]]:
     """
-    Mengevaluasi hingga max_candidates teratas dalam satu divisi menggunakan Gemini 3.8 Flash (atau model yang dikonfigurasi).
+    Mengevaluasi hingga max_candidates teratas dalam satu divisi menggunakan Gemini REST API.
+    Mencoba model utama (default: gemini-3.8-flash) dengan timeout 3.0 detik, dan jika gagal/503,
+    otomatis fallback ke gemini-3.5-flash-lite (~1 detik).
     Mengembalikan dictionary: { fileId: { contextualScore, practicalLevel, executiveSummary, keyStrength } }
-    Jika GEMINI_API_KEY tidak disetel atau terjadi error koneksi, mengembalikan dict kosong secara graceful.
     """
     key = (api_key or os.environ.get("GEMINI_API_KEY", "")).strip()
     if not key:
@@ -142,7 +145,6 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
   ]
 }}"""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={key}"
     payload = {
         "contents": [
             {
@@ -157,62 +159,76 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
         }
     }
 
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=10) as response:
-            res_body = response.read().decode("utf-8")
-            res_json = json.loads(res_body)
+    # Daftar model yang dicoba secara berurutan jika terjadi timeout / 503
+    models_to_try = [model_name]
+    if model_name != FALLBACK_GEMINI_MODEL:
+        models_to_try.append(FALLBACK_GEMINI_MODEL)
 
-        candidates_content = res_json.get("candidates", [])
-        if not candidates_content:
-            return {}
+    for current_model in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={key}"
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            # Timeout 3.0 detik per request agar anti-hang
+            with urllib.request.urlopen(req, timeout=3.0) as response:
+                res_body = response.read().decode("utf-8")
+                res_json = json.loads(res_body)
 
-        text_out = candidates_content[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-        if not text_out:
-            return {}
-
-        raw_text = text_out.strip()
-        # Bersihkan format markdown block jika model membungkusnya dalam ```json ... ```
-        if raw_text.startswith("```"):
-            lines = raw_text.splitlines()
-            if lines and lines[0].startswith("```"):
-                lines = lines[1:]
-            if lines and lines[-1].startswith("```"):
-                lines = lines[:-1]
-            raw_text = "\n".join(lines).strip()
-
-        parsed_eval = json.loads(raw_text)
-        
-        # Dukung baik format {"evaluations": [...]} maupun array langsung [...]
-        if isinstance(parsed_eval, list):
-            eval_list = parsed_eval
-        elif isinstance(parsed_eval, dict):
-            eval_list = parsed_eval.get("evaluations", [])
-            if not eval_list and "candidates" in parsed_eval:
-                eval_list = parsed_eval.get("candidates", [])
-        else:
-            eval_list = []
-
-        result_map = {}
-        for ev in eval_list:
-            if not isinstance(ev, dict):
+            candidates_content = res_json.get("candidates", [])
+            if not candidates_content:
                 continue
-            cid = ev.get("candidateId")
-            if cid:
-                result_map[str(cid)] = {
-                    "contextualScore": _safe_float(ev.get("contextualScore", 0)),
-                    "practicalLevel": str(ev.get("practicalLevel", "Sedang")),
-                    "executiveSummary": str(ev.get("executiveSummary", "")),
-                    "keyStrength": str(ev.get("keyStrength", "")),
-                }
 
-        return result_map
-    except Exception as e:
-        # Fallback gracefully jika timeout atau quota limit tercapai
-        print(f"[Tier 2 AI Evaluation Warning] Gagal mengevaluasi via Gemini: {str(e)}")
-        return {}
+            text_out = candidates_content[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+            if not text_out:
+                continue
+
+            raw_text = text_out.strip()
+            # Bersihkan format markdown block jika model membungkusnya dalam ```json ... ```
+            if raw_text.startswith("```"):
+                lines = raw_text.splitlines()
+                if lines and lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].startswith("```"):
+                    lines = lines[:-1]
+                raw_text = "\n".join(lines).strip()
+
+            parsed_eval = json.loads(raw_text)
+            
+            # Dukung baik format {"evaluations": [...]} maupun array langsung [...]
+            if isinstance(parsed_eval, list):
+                eval_list = parsed_eval
+            elif isinstance(parsed_eval, dict):
+                eval_list = parsed_eval.get("evaluations", [])
+                if not eval_list and "candidates" in parsed_eval:
+                    eval_list = parsed_eval.get("candidates", [])
+            else:
+                eval_list = []
+
+            result_map = {}
+            for ev in eval_list:
+                if not isinstance(ev, dict):
+                    continue
+                cid = ev.get("candidateId")
+                if cid:
+                    result_map[str(cid)] = {
+                        "contextualScore": _safe_float(ev.get("contextualScore", 0)),
+                        "practicalLevel": str(ev.get("practicalLevel", "Sedang")),
+                        "executiveSummary": str(ev.get("executiveSummary", "")),
+                        "keyStrength": str(ev.get("keyStrength", "")),
+                    }
+
+            if result_map:
+                return result_map
+
+        except urllib.error.HTTPError as e:
+            print(f"[Tier 2 AI Warning] Model {current_model} HTTP {e.code}, mencoba fallback...")
+            continue
+        except Exception as e:
+            print(f"[Tier 2 AI Warning] Model {current_model} gagal ({str(e)}), mencoba fallback...")
+            continue
+
+    return {}
