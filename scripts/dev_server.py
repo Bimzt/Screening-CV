@@ -43,6 +43,13 @@ class DevDispatcherHandler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0].rstrip("/")
         module_name = ROUTES.get(path)
 
+        if not module_name and path.startswith("/api/"):
+            candidate = path[len("/api/"):].strip("/")
+            if candidate and not candidate.startswith("_"):
+                py_file = os.path.join(API_DIR, f"{candidate}.py")
+                if os.path.exists(py_file):
+                    module_name = candidate
+
         if not module_name:
             self.send_response(404)
             self.send_header("Content-Type", "application/json")
@@ -52,7 +59,7 @@ class DevDispatcherHandler(BaseHTTPRequestHandler):
 
         try:
             # Auto-reload submodul _lib dan endpoint handler secara dinamis saat pengembangan
-            for sub in ["_lib.excel", "_lib.scoring", "_lib.auth", "_lib.drive", "_lib.extraction"]:
+            for sub in ["_lib.gemini", "_lib.excel", "_lib.scoring", "_lib.auth", "_lib.drive", "_lib.extraction"]:
                 if sub in sys.modules:
                     try:
                         importlib.reload(sys.modules[sub])
