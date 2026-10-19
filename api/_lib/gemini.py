@@ -219,6 +219,7 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
                         "practicalLevel": str(ev.get("practicalLevel", "Sedang")),
                         "executiveSummary": str(ev.get("executiveSummary", "")),
                         "keyStrength": str(ev.get("keyStrength", "")),
+                        "modelUsed": current_model,
                     }
 
             if result_map:

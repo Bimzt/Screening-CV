@@ -151,6 +151,7 @@ export interface RankedCandidate {
     practicalLevel?: "Tinggi" | "Sedang" | "Dasar" | string;
     executiveSummary?: string;
     keyStrength?: string;
+    modelUsed?: string;
   };
 }
 

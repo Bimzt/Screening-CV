@@ -315,6 +315,21 @@ export default function ResultsStep({
             </div>
           </div>
 
+          {/* Active AI Status Pill */}
+          {currentCandidates.some(c => c.aiEvaluation) && (
+            <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-500/30 text-xs">
+              <div className="flex items-center gap-2 text-amber-300 font-medium">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>
+                  Evaluasi Kontekstual Aktif: <strong>{currentCandidates.find(c => c.aiEvaluation)?.aiEvaluation?.modelUsed || "Google Gemini"}</strong> menganalisis kesiapan kerja kandidat teratas.
+                </span>
+              </div>
+              <span className="text-[10px] text-amber-200/80 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                Tier 2 AI Active
+              </span>
+            </div>
+          )}
+
           {/* Candidates Table */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
@@ -389,9 +404,12 @@ export default function ResultsStep({
                                   </span>
                                 )}
                                 {cand.aiEvaluation && (
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-gradient-to-r from-amber-500/20 to-indigo-500/20 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1">
+                                  <span
+                                    className="px-2 py-0.5 rounded-full text-[10px] bg-gradient-to-r from-amber-500/20 to-indigo-500/20 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1"
+                                    title={`Evaluated by ${cand.aiEvaluation.modelUsed || "Gemini"}`}
+                                  >
                                     <Sparkles className="w-2.5 h-2.5 text-amber-400" />
-                                    AI Evaluated
+                                    <span>AI: {cand.aiEvaluation.modelUsed ? cand.aiEvaluation.modelUsed.replace("gemini-", "") : "Gemini"}</span>
                                   </span>
                                 )}
                               </div>
@@ -468,7 +486,7 @@ export default function ResultsStep({
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                                       <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
                                         <Sparkles className="w-4 h-4 text-amber-400" />
-                                        Tier 2 AI Contextual Assessment (Gemini)
+                                        Tier 2 AI Contextual Assessment ({cand.aiEvaluation.modelUsed || "Google Gemini"})
                                       </span>
                                       <div className="flex items-center gap-2">
                                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300">

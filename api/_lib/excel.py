@@ -246,11 +246,12 @@ def generate_screening_excel(
             ai_eval = cand.get("aiEvaluation") or {}
             ai_eval_text = "-"
             if ai_eval:
+                ai_model = ai_eval.get("modelUsed") or "Gemini"
                 ai_score = ai_eval.get("contextualScore", "-")
                 ai_level = ai_eval.get("practicalLevel", "-")
                 ai_summary = ai_eval.get("executiveSummary", "")
                 ai_strength = ai_eval.get("keyStrength", "")
-                ai_eval_text = f"[{ai_level} | Skor {ai_score}] {ai_summary}"
+                ai_eval_text = f"[{ai_model} | {ai_level} | Skor {ai_score}] {ai_summary}"
                 if ai_strength:
                     ai_eval_text += f" | Keunggulan: {ai_strength}"
 

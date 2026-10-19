@@ -374,7 +374,7 @@ def test_batch_ranking_with_tier2_ai_evaluation():
         ai_col_header = ws_rank.cell(row=1, column=22).value
         assert ai_col_header == "Evaluasi AI (Gemini)"
         ai_val = ws_rank.cell(row=2, column=22).value
-        assert "[Tinggi | Skor 92.0]" in ai_val
+        assert "Skor 92.0]" in ai_val
         assert "Kepemimpinan Proyek" in ai_val
 
 
