@@ -254,6 +254,12 @@ def generate_screening_excel(
                 ai_eval_text = f"[{ai_model} | {ai_level} | Skor {ai_score}] {ai_summary}"
                 if ai_strength:
                     ai_eval_text += f" | Keunggulan: {ai_strength}"
+                if ai_eval.get("strengths"):
+                    ai_eval_text += f" | Bukti Kekuatan: {', '.join(ai_eval.get('strengths', []))}"
+                if ai_eval.get("areasToProbe"):
+                    ai_eval_text += f" | Catatan Interview: {', '.join(ai_eval.get('areasToProbe', []))}"
+                if ai_eval.get("interviewQuestion"):
+                    ai_eval_text += f" | Tanya Validasi: {ai_eval.get('interviewQuestion')}"
 
             row_data = [
                 cand.get("division"),

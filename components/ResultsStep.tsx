@@ -18,6 +18,10 @@ import {
   Briefcase,
   Layers,
   Sparkles,
+  Award,
+  FileText,
+  AlertCircle,
+  HelpCircle,
 } from "lucide-react";
 
 interface ResultsStepProps {
@@ -180,6 +184,9 @@ export default function ResultsStep({
       setRankingState(updatedRanking);
       await saveLocalData("last_ranking_response", updatedRanking);
       setAiSuccessMessage(`Berhasil mengevaluasi 10 kandidat teratas divisi ${selectedDivision} dengan ${modelUsed}!`);
+      if (updatedList.length > 0) {
+        setExpandedCandidateId(updatedList[0].fileId);
+      }
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Gagal mengevaluasi dengan Gemini AI");
     } finally {
@@ -246,6 +253,7 @@ export default function ResultsStep({
         };
         setRankingState(updatedRanking);
         await saveLocalData("last_ranking_response", updatedRanking);
+        setExpandedCandidateId(cand.fileId);
       }
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Gagal mengevaluasi kandidat dengan Gemini AI");
@@ -368,9 +376,14 @@ export default function ResultsStep({
       </div>
 
       {aiSuccessMessage && (
-        <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>{aiSuccessMessage}</span>
+        <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="font-medium">{aiSuccessMessage}</span>
+          </div>
+          <span className="text-[11px] text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/25 font-semibold shrink-0">
+            👇 Hasil tampil di kolom &quot;Evaluasi AI (Gemini)&quot; &amp; klik baris pelamar untuk buka telaah lengkap
+          </span>
         </div>
       )}
 
@@ -503,10 +516,16 @@ export default function ResultsStep({
                   <tr>
                     <th className="py-3 px-4 w-12 text-center">Rank</th>
                     <th className="py-3 px-4">Nama Pelamar</th>
-                    <th className="py-3 px-4">Kampus & Jurusan</th>
+                    <th className="py-3 px-4">Kampus &amp; Jurusan</th>
                     <th className="py-3 px-4 text-center">IPK</th>
                     <th className="py-3 px-4 text-center">Skor Akhir</th>
                     <th className="py-3 px-4">Syarat Wajib</th>
+                    <th className="py-3 px-4 min-w-[220px]">
+                      <div className="flex items-center gap-1.5 text-amber-300">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Evaluasi AI (Gemini)</span>
+                      </div>
+                    </th>
                     <th className="py-3 px-4">Alasan Penilaian</th>
                     <th className="py-3 px-4 text-center">Aksi</th>
                   </tr>
@@ -514,7 +533,7 @@ export default function ResultsStep({
                 <tbody className="divide-y divide-slate-800/60">
                   {currentCandidates.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center text-slate-500">
+                      <td colSpan={9} className="py-12 text-center text-slate-500">
                         Tidak ada kandidat untuk filter yang dipilih.
                       </td>
                     </tr>
@@ -552,7 +571,14 @@ export default function ResultsStep({
 
                       return (
                         <React.Fragment key={`${cand.division}_${cand.fileId}_${cand.rank}`}>
-                          <tr className="hover:bg-slate-950/40 transition-colors">
+                          <tr
+                            onClick={() =>
+                              setExpandedCandidateId(isExpanded ? null : cand.fileId)
+                            }
+                            className={`hover:bg-slate-800/40 transition-colors cursor-pointer ${
+                              isExpanded ? "bg-slate-800/25" : ""
+                            }`}
+                          >
                             <td className="py-3 px-4 font-mono font-bold text-center text-slate-400">
                               #{cand.rank}
                             </td>
@@ -621,14 +647,62 @@ export default function ResultsStep({
                               {cand.finalScore.toFixed(1)}
                             </td>
                             <td className="py-3 px-4">{statusBadge}</td>
+
+                            {/* NEW DEDICATED COLUMN: Evaluasi AI (Gemini) */}
+                            <td className="py-3 px-4 min-w-[220px] max-w-xs">
+                              {cand.aiEvaluation ? (
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                        cand.aiEvaluation.practicalLevel === "Tinggi"
+                                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                                          : cand.aiEvaluation.practicalLevel === "Sedang"
+                                          ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                          : "bg-slate-800 text-slate-300 border-slate-700"
+                                      }`}
+                                    >
+                                      Praktikal: {cand.aiEvaluation.practicalLevel || "Sedang"}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono font-bold">
+                                      Skor AI: {cand.aiEvaluation.contextualScore ?? cand.finalScore.toFixed(0)}/100
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-300 line-clamp-2 leading-snug">
+                                    {cand.aiEvaluation.keyStrength || cand.aiEvaluation.executiveSummary || "Kandidat telah dievaluasi oleh Gemini."}
+                                  </p>
+                                  <span className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-0.5">
+                                    <span>Klik baris untuk telaah lengkap</span>
+                                    <ChevronDown className="w-3 h-3" />
+                                  </span>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEvaluateSingleCandidate(cand);
+                                  }}
+                                  disabled={evaluatingSingleId === cand.fileId}
+                                  className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-medium flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                                  title="Evaluasi kandidat ini dengan Gemini AI"
+                                >
+                                  <Sparkles className="w-3 h-3 text-amber-400" />
+                                  <span>{evaluatingSingleId === cand.fileId ? "Menganalisis..." : "✨ Evaluasi AI"}</span>
+                                </button>
+                              )}
+                            </td>
+
                             <td className="py-3 px-4 max-w-xs text-[11px] text-slate-400 truncate">
                               {cand.reasons}
                             </td>
                             <td className="py-3 px-4 text-center">
                               <button
-                                onClick={() =>
-                                  setExpandedCandidateId(isExpanded ? null : cand.fileId)
-                                }
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedCandidateId(isExpanded ? null : cand.fileId);
+                                }}
                                 className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
                                 title="Detail Pelamar"
                               >
@@ -644,43 +718,158 @@ export default function ResultsStep({
                           {/* Expanded Breakdown */}
                           {isExpanded && (
                             <tr className="bg-slate-950/70">
-                              <td colSpan={8} className="p-4 space-y-3 border-t border-slate-800">
-                                {/* Tier 2 AI Contextual Assessment Card */}
+                              <td colSpan={9} className="p-4 space-y-3 border-t border-slate-800">
+                                {/* Tier 2 AI Contextual Assessment Card (Comprehensive HR View) */}
                                 {cand.aiEvaluation ? (
-                                  <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-500/30 space-y-2 mb-2">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                                      <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                                        <Sparkles className="w-4 h-4 text-amber-400" />
-                                        Tier 2 AI Contextual Assessment ({cand.aiEvaluation.modelUsed || "Google Gemini"})
-                                      </span>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300">
-                                          Tingkat Praktikal: <strong className="text-white">{cand.aiEvaluation.practicalLevel}</strong>
+                                  <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-amber-950/20 to-indigo-950/20 border border-amber-500/30 space-y-3.5 mb-3 shadow-lg">
+                                    {/* Header Info */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-amber-500/20">
+                                      <div className="flex items-center gap-2.5">
+                                        <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                                          <Sparkles className="w-4 h-4 text-amber-400" />
+                                        </div>
+                                        <div>
+                                          <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                                            <span>Hasil Evaluasi Mendalam AI: {cand.name}</span>
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-normal">
+                                              Model: {cand.aiEvaluation.modelUsed || "gemini-3.8-flash"}
+                                            </span>
+                                          </h4>
+                                          <p className="text-[11px] text-slate-400">
+                                            Penilaian semantik kesiapan kerja riil &amp; relevansi proyek terhadap Job Description {cand.division}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                                        <span className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300">
+                                          Kesiapan Praktikal:{" "}
+                                          <strong className={
+                                            cand.aiEvaluation.practicalLevel === "Tinggi"
+                                              ? "text-emerald-400"
+                                              : cand.aiEvaluation.practicalLevel === "Sedang"
+                                              ? "text-amber-400"
+                                              : "text-slate-300"
+                                          }>
+                                            {cand.aiEvaluation.practicalLevel || "Sedang"}
+                                          </strong>
                                         </span>
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono font-bold">
-                                          Skor AI: {cand.aiEvaluation.contextualScore}/100
+                                        <span className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono font-bold">
+                                          Skor AI: {cand.aiEvaluation.contextualScore ?? cand.finalScore.toFixed(0)}/100
                                         </span>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEvaluateSingleCandidate(cand);
+                                          }}
+                                          disabled={evaluatingSingleId === cand.fileId}
+                                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                                          title="Analisis ulang dengan Gemini AI"
+                                        >
+                                          <RotateCcw className={`w-3 h-3 ${evaluatingSingleId === cand.fileId ? "animate-spin" : ""}`} />
+                                          <span>{evaluatingSingleId === cand.fileId ? "Menganalisis..." : "Evaluasi Ulang"}</span>
+                                        </button>
                                       </div>
                                     </div>
-                                    <p className="text-xs text-slate-200 leading-relaxed">
-                                      {cand.aiEvaluation.executiveSummary}
-                                    </p>
+
+                                    {/* Section 1: Ringkasan Eksekutif & Analisis Kesiapan Kerja */}
+                                    <div className="space-y-1.5">
+                                      <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                                        <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                                        <span>Analisis Eksekutif &amp; Kesiapan Kerja Praktis</span>
+                                      </div>
+                                      <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-200 leading-relaxed">
+                                        <p className="whitespace-pre-line">
+                                          {cand.aiEvaluation.executiveSummary || "Kandidat telah dievaluasi memiliki kesesuaian terhadap profil divisi."}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Section 2: Keunggulan Kompetitif Utama */}
                                     {cand.aiEvaluation.keyStrength && (
-                                      <div className="text-[11px] text-amber-200/90">
-                                        <strong>Keunggulan Utama: </strong>{cand.aiEvaluation.keyStrength}
+                                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2.5 text-xs">
+                                        <Award className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                                        <div>
+                                          <span className="font-bold text-amber-300">Keunggulan Kompetitif Utama: </span>
+                                          <span className="text-amber-100/90 leading-relaxed">{cand.aiEvaluation.keyStrength}</span>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Grid: Bukti Kekuatan Nyata & Catatan Validasi Interview */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                      {/* Bukti Kekuatan Nyata */}
+                                      <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+                                        <span className="font-bold text-emerald-400 flex items-center gap-1.5 text-[11px]">
+                                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                          Bukti Kekuatan Teknis &amp; Pengalaman Nyata
+                                        </span>
+                                        {cand.aiEvaluation.strengths && cand.aiEvaluation.strengths.length > 0 ? (
+                                          <ul className="space-y-1.5 pl-1">
+                                            {cand.aiEvaluation.strengths.map((strItem, sIdx) => (
+                                              <li key={sIdx} className="text-slate-300 flex items-start gap-2 text-[11px] leading-relaxed">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 mt-1.5" />
+                                                <span>{strItem}</span>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        ) : (
+                                          <p className="text-[11px] text-slate-400 italic">
+                                            Terdapat bukti kepemilikan proyek/pengalaman relevan pada portofolio dan rekam jejak CV.
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      {/* Catatan Validasi Wawancara */}
+                                      <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+                                        <span className="font-bold text-amber-400 flex items-center gap-1.5 text-[11px]">
+                                          <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                                          Poin Validasi Saat Wawancara (Area to Probe)
+                                        </span>
+                                        {cand.aiEvaluation.areasToProbe && cand.aiEvaluation.areasToProbe.length > 0 ? (
+                                          <ul className="space-y-1.5 pl-1">
+                                            {cand.aiEvaluation.areasToProbe.map((probeItem, pIdx) => (
+                                              <li key={pIdx} className="text-slate-300 flex items-start gap-2 text-[11px] leading-relaxed">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
+                                                <span>{probeItem}</span>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        ) : (
+                                          <p className="text-[11px] text-slate-400 italic">
+                                            Konfirmasi kontribusi individu vs kerja tim pada proyek portofolio utama saat wawancara.
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Section 4: Rekomendasi Pertanyaan Interview */}
+                                    {cand.aiEvaluation.interviewQuestion && (
+                                      <div className="p-3 rounded-xl bg-indigo-950/30 border border-indigo-500/30 space-y-1 text-xs">
+                                        <div className="text-[11px] font-bold text-indigo-300 flex items-center gap-1.5">
+                                          <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+                                          <span>Rekomendasi Pertanyaan Teknis/Situasional untuk Rekruter:</span>
+                                        </div>
+                                        <p className="text-slate-200 italic pl-5 leading-relaxed text-[11px]">
+                                          &ldquo;{cand.aiEvaluation.interviewQuestion}&rdquo;
+                                        </p>
                                       </div>
                                     )}
                                   </div>
                                 ) : (
-                                  <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                  <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
                                     <div className="text-xs text-slate-400 flex items-center gap-2">
                                       <Sparkles className="w-4 h-4 text-slate-500" />
-                                      <span>Belum ada evaluasi AI untuk kandidat ini.</span>
+                                      <span>Belum ada evaluasi AI untuk kandidat ini. Analisis mendalam akan menilai bukti proyek riil, kekuatan teknis, dan panduan wawancara.</span>
                                     </div>
                                     <button
-                                      onClick={() => handleEvaluateSingleCandidate(cand)}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEvaluateSingleCandidate(cand);
+                                      }}
                                       disabled={evaluatingSingleId === cand.fileId}
-                                      className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto disabled:opacity-50"
+                                      className="px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto disabled:opacity-50 shrink-0"
                                     >
                                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                                       <span>{evaluatingSingleId === cand.fileId ? "Menganalisis..." : "✨ Evaluasi dengan Gemini"}</span>

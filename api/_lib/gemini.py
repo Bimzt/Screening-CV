@@ -125,12 +125,18 @@ DESKRIPSI PEKERJAAN (JD):
 DATA KANDIDAT TERATAS UNTUK DIEVALUASI:
 {json.dumps(candidate_prompts, indent=2, ensure_ascii=False)}
 
-INSTRUKSI PENILAIAN:
-Untuk setiap kandidat di atas, berikan evaluasi:
-1. 'contextualScore' (skor angka 0 - 100): nilai kedalaman kontekstual dan kesiapan kerja riil.
+INSTRUKSI PENILAIAN KOMPREHENSIF (DETAIL & MENDALAM):
+Sebagai Senior Talent Assessor & Recruiting Lead, berikan evaluasi mendalam, objektif, dan jelas (JANGAN TERLALU RINGKAS) untuk setiap kandidat:
+1. 'contextualScore' (skor angka 0 - 100): evaluasi kesiapan kerja praktis terhadap JD.
 2. 'practicalLevel': 'Tinggi' (bukti eksekusi/portofolio kuat), 'Sedang' (ada pengalaman relevan), atau 'Dasar' (hanya kursus/teori/kata kunci).
-3. 'executiveSummary': 1-2 kalimat padat untuk rekruter yang menjelaskan kekuatan riil dan potensi catatan kandidat.
-4. 'keyStrength': 3-5 kata tentang keunggulan terbesar kandidat.
+3. 'executiveSummary': Uraian evaluasi mendalam dan jelas (3 - 5 kalimat komprehensif) yang menjelaskan:
+   - Bukti eksekusi nyata dari proyek/pengalaman yang pernah dikerjakan.
+   - Relevansi langsung pengalaman tersebut terhadap tanggung jawab utama di Job Description.
+   - Kesiapan kandidat untuk langsung bekerja mandiri vs butuh pelatihan awal.
+4. 'keyStrength': Uraian 1-2 kalimat tentang keunggulan kompetitif terbesar kandidat dibanding pelamar lain.
+5. 'strengths': Array string berisi 2 - 3 poin kekuatan teknis/pengalaman spesifik yang terbukti di CV.
+6. 'areasToProbe': Array string berisi 1 - 2 poin catatan atau hal yang perlu dikonfirmasi rekruter saat wawancara.
+7. 'interviewQuestion': 1 pertanyaan wawancara teknis/situasional yang paling tajam dan relevan untuk memvalidasi kemampuannya.
 
 Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan struktur:
 {{
@@ -140,7 +146,10 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
       "contextualScore": 85,
       "practicalLevel": "Tinggi",
       "executiveSummary": "...",
-      "keyStrength": "..."
+      "keyStrength": "...",
+      "strengths": ["...", "..."],
+      "areasToProbe": ["..."],
+      "interviewQuestion": "..."
     }}
   ]
 }}"""
@@ -159,7 +168,7 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
         }
     }
 
-    # Daftar model yang dicoba secara berurutan jika terjadi timeout / 503
+    # Daftar model yang dicoba secara berurutan jika terjadi timeout / 503 / 429
     models_to_try = [model_name]
     if model_name != FALLBACK_GEMINI_MODEL:
         models_to_try.append(FALLBACK_GEMINI_MODEL)
@@ -173,8 +182,8 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
                 headers={"Content-Type": "application/json"},
                 method="POST"
             )
-            # Timeout 3.0 detik per request agar anti-hang
-            with urllib.request.urlopen(req, timeout=3.0) as response:
+            # Timeout 8.0 detik per request agar cukup waktu untuk respons mendalam tanpa hang
+            with urllib.request.urlopen(req, timeout=8.0) as response:
                 res_body = response.read().decode("utf-8")
                 res_json = json.loads(res_body)
 
@@ -209,18 +218,31 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
                 eval_list = []
 
             result_map = {}
-            for ev in eval_list:
+            for item_idx, ev in enumerate(eval_list, start=1):
                 if not isinstance(ev, dict):
                     continue
                 cid = ev.get("candidateId")
+                eval_data = {
+                    "contextualScore": _safe_float(ev.get("contextualScore", 0)),
+                    "practicalLevel": str(ev.get("practicalLevel", "Sedang")),
+                    "executiveSummary": str(ev.get("executiveSummary", "")),
+                    "keyStrength": str(ev.get("keyStrength", "")),
+                    "strengths": [str(s) for s in ev.get("strengths", []) if s],
+                    "areasToProbe": [str(a) for a in ev.get("areasToProbe", []) if a],
+                    "interviewQuestion": str(ev.get("interviewQuestion", "")),
+                    "modelUsed": current_model,
+                }
                 if cid:
-                    result_map[str(cid)] = {
-                        "contextualScore": _safe_float(ev.get("contextualScore", 0)),
-                        "practicalLevel": str(ev.get("practicalLevel", "Sedang")),
-                        "executiveSummary": str(ev.get("executiveSummary", "")),
-                        "keyStrength": str(ev.get("keyStrength", "")),
-                        "modelUsed": current_model,
-                    }
+                    result_map[str(cid)] = eval_data
+                # Fallback mapping berdasarkan indeks urutan jika LLM mengubah id
+                result_map[str(item_idx)] = eval_data
+                # Fallback mapping berdasarkan kandidat asal pada urutan yang sama
+                if item_idx - 1 < len(target_candidates):
+                    orig_cand = target_candidates[item_idx - 1]
+                    for alt_key in ["fileId", "email", "sourceRowIndex", "rank", "name"]:
+                        val = orig_cand.get(alt_key)
+                        if val is not None and str(val):
+                            result_map[str(val)] = eval_data
 
             if result_map:
                 return result_map
