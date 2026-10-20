@@ -12,40 +12,26 @@
     "video producer"
   ],
   "title": "Content Creator Intern",
-  "jd": "Mengonsep dan memproduksi konten video kreatif pendek untuk platform TikTok, Instagram Reels, dan YouTube Shorts. Menguasai alur produksi mulai dari scriptwriting/storytelling naskah edukatif, percaya diri tampil di depan kamera sebagai talent/host, hingga shooting dan editing video dinamis dengan CapCut atau Adobe Premiere Pro.",
+  "jd": "Membuat konten yang sesuai dengan kriteria yang sudah di berikan dari tim sosmed, membuat ide baru untuk konten selanjutnya, merencanakan bagaimana agar postingan bisa menggapai interaksi orang.",
   "hardRequirements": {
     "mandatorySkills": {
       "items": [
-        "Video Editing",
         "CapCut",
-        "Scriptwriting"
+        "Canva"
       ],
       "rule": "min_n",
-      "minCount": 2
+      "minCount": 1
     },
-    "minGpa": 3.0,
+    "minGpa": 3.2,
     "allowedMajors": [
-      "Ilmu Komunikasi",
-      "Broadcasting",
-      "Desain Komunikasi Visual",
-      "DKV",
-      "Perfilman",
-      "Jurnalistik",
-      "Sastra",
-      "Pemasaran"
+      "semua jurusan"
     ]
   },
   "additionalSkills": [
-    "TikTok",
-    "Instagram Reels",
     "Adobe Premiere",
-    "Storytelling",
-    "Content Creation",
-    "Voice Over",
-    "Lighting",
-    "CapCut",
-    "YouTube",
-    "Canva"
+    "Photoshop",
+    "Copywriting",
+    "Storytelling"
   ],
   "categories": {
     "projects": {
@@ -70,8 +56,8 @@
     }
   },
   "thresholds": {
-    "durationMonths": 6,
-    "projectsCount": 3
+    "durationMonths": 0,
+    "projectsCount": 0
   },
   "customSectionHeadings": [
     "Portofolio Video",

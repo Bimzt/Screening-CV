@@ -71,7 +71,23 @@ class handler(BaseHTTPRequestHandler):
 
         file_id = extract_drive_file_id(file_id_input)
         if not file_id and not raw_base64:
-            # Gagal validasi File ID Drive
+            # Gagal validasi File ID Drive: berikan penjelasan yang spesifik
+            raw_str = str(file_id_input or "").strip()
+            raw_lower = raw_str.lower()
+            if not raw_str:
+                err_msg = "Kolom link CV kosong di CSV pelamar ini. Pastikan kolom yang dipetakan pada langkah sebelumnya sudah benar."
+            elif "canva.com" in raw_lower:
+                err_msg = "Link mengarah ke Canva. Pelamar perlu mengunggah berkas PDF CV ke Google Drive."
+            elif "linkedin.com" in raw_lower:
+                err_msg = "Link mengarah ke profil LinkedIn, bukan berkas CV di Google Drive."
+            elif "instagram.com" in raw_lower or "tiktok.com" in raw_lower:
+                err_msg = "Link mengarah ke akun media sosial, bukan berkas Google Drive."
+            elif "drive.google.com" in raw_lower:
+                err_msg = "Tautan Google Drive tidak memuat File ID yang sah atau format URL terpotong."
+            else:
+                display_link = raw_str[:45] + ("..." if len(raw_str) > 45 else "")
+                err_msg = f"Tautan tidak didukung ({display_link}). Pastikan tautan Google Drive dengan akses publik."
+
             self._send_json(200, {
                 "status": "ok",
                 "result": {
@@ -98,7 +114,7 @@ class handler(BaseHTTPRequestHandler):
                     "flags": ["link_drive_tidak_valid"],
                     "isScanPdf": False,
                     "divisionChoices": division_choices,
-                    "error": "Link Google Drive tidak valid atau tidak memuat File ID yang sah."
+                    "error": err_msg
                 }
             })
             return
@@ -123,6 +139,16 @@ class handler(BaseHTTPRequestHandler):
                 download_error = str(e)
 
         if download_error or not file_bytes:
+            err_text = str(download_error)
+            if "Akses ditolak" in err_text or "403" in err_text or "tidak dapat diunduh" in err_text:
+                err_msg = "Akses Google Drive terkunci. Pastikan izin tautan diatur ke 'Siapa saja yang memiliki link' (Anyone with the link)."
+            elif "404" in err_text or "tidak ditemukan" in err_text:
+                err_msg = f"Berkas tidak ditemukan di Google Drive atau telah dihapus oleh pelamar."
+            elif "kosong" in err_text:
+                err_msg = err_text
+            else:
+                err_msg = f"Gagal mengunduh dari Google Drive: {err_text}"
+
             self._send_json(200, {
                 "status": "ok",
                 "result": {
@@ -149,7 +175,7 @@ class handler(BaseHTTPRequestHandler):
                     "flags": ["gagal_unduh_drive"],
                     "isScanPdf": False,
                     "divisionChoices": division_choices,
-                    "error": f"Gagal mengunduh dari Google Drive: {download_error}"
+                    "error": err_msg
                 }
             })
             return
@@ -203,7 +229,7 @@ class handler(BaseHTTPRequestHandler):
             candidate_name_from_csv=candidate_name
         )
 
-        flags = list(set(section_flags + extract_flags))
+        flags = list(set(section_flags + extract_flags + parsed.get("flags", [])))
         if is_scan:
             flags.append("pdf_scan_ocr_belum_didukung")
 

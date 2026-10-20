@@ -28,6 +28,8 @@ if os.path.exists(ENV_LOCAL):
                 key, val = line.split("=", 1)
                 os.environ.setdefault(key.strip(), val.strip())
 
+import threading
+
 # Map rute endpoint ke modul Python di folder api/
 ROUTES = {
     "/api/hello": "hello",
@@ -36,6 +38,65 @@ ROUTES = {
     "/api/export": "export",
     "/api/evaluate": "evaluate",
 }
+
+_MODULE_LOCK = threading.Lock()
+_FILE_MTIMES = {}
+
+
+def _get_endpoint_handler(module_name: str):
+    """
+    Mengambil class handler dari modul endpoint secara thread-safe.
+    Hanya me-reload jika berkas .py benar-benar dimodifikasi pada disk,
+    mencegah race condition ketika banyak CV diekstrak secara bersamaan.
+    """
+    with _MODULE_LOCK:
+        py_file = os.path.join(API_DIR, f"{module_name}.py")
+        current_mtime = os.path.getmtime(py_file) if os.path.exists(py_file) else None
+
+        # Cek apakah ada berkas di _lib yang dimodifikasi
+        lib_dir = os.path.join(API_DIR, "_lib")
+        lib_changed = False
+        if os.path.isdir(lib_dir):
+            for fname in os.listdir(lib_dir):
+                if fname.endswith(".py"):
+                    fpath = os.path.join(lib_dir, fname)
+                    fmtime = os.path.getmtime(fpath)
+                    if _FILE_MTIMES.get(fpath) != fmtime:
+                        lib_changed = True
+                        _FILE_MTIMES[fpath] = fmtime
+                        sub_name = f"_lib.{fname[:-3]}"
+                        if sub_name in sys.modules:
+                            try:
+                                importlib.reload(sys.modules[sub_name])
+                            except Exception:
+                                pass
+
+        last_mtime = _FILE_MTIMES.get(py_file)
+        need_reload = (current_mtime is not None and last_mtime != current_mtime) or lib_changed
+
+        if module_name in sys.modules:
+            mod = sys.modules[module_name]
+            # Pastikan atribut handler benar-benar ada dan tidak rusak
+            if need_reload or not hasattr(mod, "handler"):
+                try:
+                    mod = importlib.reload(mod)
+                except Exception:
+                    sys.modules.pop(module_name, None)
+                    mod = importlib.import_module(module_name)
+        else:
+            mod = importlib.import_module(module_name)
+
+        if current_mtime is not None:
+            _FILE_MTIMES[py_file] = current_mtime
+
+        handler_class = getattr(mod, "handler", None)
+        if handler_class is None:
+            # Fallback jika modul sempat rusak di cache
+            sys.modules.pop(module_name, None)
+            mod = importlib.import_module(module_name)
+            handler_class = getattr(mod, "handler")
+
+        return handler_class
 
 
 class DevDispatcherHandler(BaseHTTPRequestHandler):
@@ -58,20 +119,7 @@ class DevDispatcherHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            # Auto-reload submodul _lib dan endpoint handler secara dinamis saat pengembangan
-            for sub in ["_lib.gemini", "_lib.excel", "_lib.scoring", "_lib.auth", "_lib.drive", "_lib.extraction"]:
-                if sub in sys.modules:
-                    try:
-                        importlib.reload(sys.modules[sub])
-                    except Exception:
-                        pass
-
-            if module_name in sys.modules:
-                mod = importlib.reload(sys.modules[module_name])
-            else:
-                mod = importlib.import_module(module_name)
-
-            handler_class = getattr(mod, "handler")
+            handler_class = _get_endpoint_handler(module_name)
             
             # Buat instance handler dan jalankan method yang sesuai
             # Karena BaseHTTPRequestHandler.__init__ memanggil handle(),

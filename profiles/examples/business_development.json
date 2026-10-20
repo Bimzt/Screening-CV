@@ -2,6 +2,7 @@
   "version": "1.0",
   "division": "Business Development",
   "divisionAliases": [
+    "busdev",
     "business development",
     "bussiness development",
     "bizdev",
@@ -12,7 +13,7 @@
     "business relationship"
   ],
   "title": "Business Development Intern",
-  "jd": "Mengidentifikasi peluang kerja sama B2B dan ekspansi pasar, melakukan riset pasar dan analisis kompetitor, menyusun proposal kemitraan (partnership proposal) dan pitch deck kerja sama, melakukan cold pitching dan presentasi kepada calon mitra institusi/komunitas/sekolah, serta menegosiasikan kesepakatan kolaborasi yang menguntungkan perusahaan.",
+  "jd": "melakukan riset pasar dan mengelola database leads, menyusun proposal serta pitch deck yang relevan, melakukan reach out dan negosiasi hingga mencapai kesepakatan kerja sama, serta memimpin tim dan berkoordinasi lintas divisi (paling sering CS dan EVENT) untuk mengeksekusi program bisnis.",
   "hardRequirements": {
     "mandatorySkills": {
       "items": [
@@ -25,26 +26,21 @@
     },
     "minGpa": 3.2,
     "allowedMajors": [
-      "Manajemen",
+      "semua jurusan",
+      "diutamakan Manajemen",
       "Bisnis",
-      "Ekonomi",
       "Pemasaran",
-      "Ilmu Komunikasi",
-      "Hubungan Internasional",
-      "Administrasi Bisnis",
-      "Teknik Industri"
+      "Ekonomi",
+      "Komunikasi"
     ]
   },
   "additionalSkills": [
-    "B2B Sales",
-    "Cold Pitching",
-    "Market Research",
-    "Pitch Deck",
-    "Proposal Kerja Sama",
-    "Lead Generation",
-    "CRM",
-    "Presentation",
-    "Sponsorship"
+    "Sales",
+    "Marketing",
+    "Partnership",
+    "Riset Pasar",
+    "Pitching",
+    "Negosiasi"
   ],
   "categories": {
     "experience": {
@@ -69,7 +65,7 @@
     }
   },
   "thresholds": {
-    "durationMonths": 6,
-    "projectsCount": 2
+    "durationMonths": 0,
+    "projectsCount": 0
   }
 }

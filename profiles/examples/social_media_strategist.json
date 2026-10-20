@@ -1,48 +1,42 @@
 {
   "version": "1.0",
-  "division": "Social Media Strategist",
+  "division": "Social Media Specialist",
   "divisionAliases": [
+    "social media specialist",
     "social media strategist",
-    "social media strategiest",
+    "social media manager",
+    "social media management",
+    "smm",
+    "pemasaran digital",
     "sosmed",
     "social media",
-    "social media specialist",
     "digital marketing",
     "social media officer"
   ],
-  "title": "Social Media Strategist Intern",
-  "jd": "Merancang strategi pertumbuhan media sosial (Instagram, TikTok, LinkedIn, Twitter/X), menyusun content calendar dan pilar konten bulanan, menganalisis performa metrik analitik (engagement rate, impressions, follower growth, CTR), melakukan riset tren algoritma terbaru, serta mengeksekusi strategi copywriting interaktif untuk meningkatkan engagement komunitas.",
+  "title": "Social Media Specialist Intern",
+  "jd": "perencanaan dan pelaksanaan strategi social media dan digital marketing, mulai dari menentukan target campaign, merencanakan konten dan promosi, mengarahkan tim dalam proses produksi konten, hingga menganalisis performa dan menyusun evaluasi untuk pengembangan strategi selanjutnya.",
   "hardRequirements": {
     "mandatorySkills": {
       "items": [
-        "Copywriting",
-        "Social Media Management",
-        "Analytics"
+        "Google Workspace",
+        "Google Docs",
+        "Google Spreadsheet",
+        "Microsoft Office"
       ],
       "rule": "min_n",
       "minCount": 2
     },
-    "minGpa": 3.15,
+    "minGpa": 3.2,
     "allowedMajors": [
-      "Ilmu Komunikasi",
-      "Pemasaran",
-      "Manajemen",
-      "Hubungan Masyarakat",
-      "Jurnalistik",
-      "Sastra",
-      "Administrasi Bisnis"
+      "semua jurusan"
     ]
   },
   "additionalSkills": [
-    "Instagram Analytics",
-    "TikTok Analytics",
-    "Content Strategy",
-    "Content Calendar",
-    "Engagement Rate",
-    "Copywriting",
-    "Canva",
     "Social Media Marketing",
-    "Storytelling"
+    "Copywriting",
+    "Problem Solving",
+    "Analytical Thinking",
+    "Attention to Detail"
   ],
   "categories": {
     "projects": {
@@ -67,8 +61,8 @@
     }
   },
   "thresholds": {
-    "durationMonths": 6,
-    "projectsCount": 3
+    "durationMonths": 0,
+    "projectsCount": 0
   },
   "customSectionHeadings": [
     "Konten",

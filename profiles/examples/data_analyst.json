@@ -67,7 +67,7 @@
     }
   },
   "thresholds": {
-    "durationMonths": 12,
-    "projectsCount": 3
+    "durationMonths": 0,
+    "projectsCount": 0
   }
 }

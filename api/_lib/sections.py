@@ -12,27 +12,36 @@ DEFAULT_SECTION_HEADINGS = {
     "education": [
         "pendidikan", "education", "riwayat pendidikan", "latar belakang pendidikan",
         "academic background", "educational background", "riwayat studi", "pendidikan formal",
-        "latar belakang akademis"
+        "latar belakang akademis", "academics", "academic history", "education & qualifications",
+        "education and qualifications", "qualifications", "study history", "educational history",
+        "tertiary education", "university education"
     ],
     "experience": [
         "pengalaman dan pelatihan", "pengalaman kerja", "pengalaman organisasi",
         "pengalaman kerja & organisasi", "pengalaman profesional", "riwayat pengalaman",
         "work experience", "professional experience", "working experience", "work experiences",
+        "employment history", "career history", "relevant experience", "work history",
         "pengalaman", "experience", "organisasi", "organization", "kepanitiaan",
-        "volunteer", "sukarelawan", "riwayat kerja", "employment", "magang", "internship",
+        "volunteer", "volunteering", "sukarelawan", "riwayat kerja", "employment", "magang", "internship",
+        "internships", "practical experience", "leadership experience", "volunteer experience",
         "pengalaman kepanitiaan", "pengalaman volunteer", "organizational experience",
-        "pengalaman kerja / magang", "riwayat organisasi"
+        "pengalaman kerja / magang", "riwayat organisasi", "extracurricular activities",
+        "extracurriculars", "co-curricular activities", "committee experience"
     ],
     "projects": [
         "project", "projects", "proyek", "portofolio", "portfolio", "karya",
         "personal project", "personal projects", "konten", "content creation",
         "selected projects", "proyek unggulan", "projects & portfolio", "project & portofolio",
-        "proyek & portofolio"
+        "proyek & portofolio", "key projects", "academic projects", "capstone project",
+        "featured projects", "independent projects", "side projects", "client projects",
+        "design portfolio"
     ],
     "certifications": [
         "sertifikasi dan pelatihan", "sertifikasi & pelatihan", "sertifikasi", "certification",
         "certifications", "pelatihan", "training", "kursus", "bootcamp", "licenses", "lisensi",
-        "sertifikat", "certificates", "courses & certifications"
+        "sertifikat", "certificates", "courses & certifications", "licenses & certifications",
+        "licenses and certifications", "certifications & credentials", "credentials",
+        "professional development", "training & certifications", "honors & certifications", "courses"
     ],
     "skills": [
         "kemampuan, sertifikasi, dan projects", "kemampuan, sertifikasi & projects",
@@ -40,7 +49,10 @@ DEFAULT_SECTION_HEADINGS = {
         "kemampuan dan keahlian", "keahlian dan kemampuan",
         "skill", "skills", "keahlian", "kemampuan", "technical skills",
         "kompetensi", "hard skills", "soft skills", "tools", "skills & tools",
-        "technical & soft skills", "keahlian teknis"
+        "technical & soft skills", "keahlian teknis", "core competencies",
+        "key competencies", "skills & abilities", "skills & expertise",
+        "areas of expertise", "tools & technologies", "tech stack", "technologies",
+        "software & tools", "skills and tools"
     ],
 }
 

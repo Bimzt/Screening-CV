@@ -8,14 +8,26 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../a
 from api._lib.drive import extract_drive_file_id, extract_all_drive_file_ids
 from api._lib.extract import extract_gpa, extract_email, extract_phone, normalize_major, estimate_duration_months, classify_experience_type
 from api._lib.sections import segment_cv_sections
+from api._lib.parsing import parse_cv_document
 
 
 def test_drive_id_extraction_and_ssrf_protection():
-    # Pola link sah
+    # Pola link sah (berkas tunggal)
     assert extract_drive_file_id("1aB2c3D4e5F6g7H8i9J0_-") == "1aB2c3D4e5F6g7H8i9J0_-"
     assert extract_drive_file_id("https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view") == "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
     assert extract_drive_file_id("https://drive.google.com/open?id=1AbCdEfGhIjKlMnOpQrStUvWxYz") == "1AbCdEfGhIjKlMnOpQrStUvWxYz"
     assert extract_drive_file_id("https://drive.google.com/d/1AbCdEfGhIjKlMnOpQrStUvWxYz") == "1AbCdEfGhIjKlMnOpQrStUvWxYz"
+
+    # Pola link Google Drive Folder (dukungan pelamar yang mengunggah folder CV)
+    assert extract_drive_file_id("https://drive.google.com/drive/folders/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs?usp=sharing") == "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
+    assert extract_drive_file_id("https://drive.google.com/drive/u/0/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz") == "1AbCdEfGhIjKlMnOpQrStUvWxYz"
+    assert extract_drive_file_id("https://drive.google.com/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz") == "1AbCdEfGhIjKlMnOpQrStUvWxYz"
+
+    # Format terenkode (URL encoded) dan formula Excel/Spreadsheet
+    assert extract_drive_file_id("https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs%2Fview") == "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
+    assert extract_drive_file_id('=HYPERLINK("https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view", "Budi CV")') == "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
+    assert extract_drive_file_id('"https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view"') == "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
+    assert extract_drive_file_id("Link CV: https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view (sudah open access)") == "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
 
     # Input berbahaya / URL eksternal (cegah SSRF)
     assert extract_drive_file_id("http://169.254.169.254/latest/meta-data") is None
@@ -101,3 +113,37 @@ def test_duration_and_experience_tagging():
     assert classify_experience_type("Ketua Panitia Orientasi Kampus") == "kepanitiaan/volunteer"
     assert classify_experience_type("Staff Departemen PSDM BEM") == "organisasi"
     assert classify_experience_type("Content Writer Intern di Startup") == "kerja/magang"
+
+
+def test_image_cv_and_ocr_handling(monkeypatch):
+    # 1. Berkas gambar CV tanpa OCR / API key: aman, tidak crash, is_scan=True
+    dummy_img = b"\x89PNG\r\n\x1a\n" + b"\x00" * 50
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+    res = parse_cv_document(dummy_img, "image/png", "cv_pelamar.png")
+    assert res["is_scan"] is True
+    assert "cv_gambar" in res["flags"]
+
+    # 2. Berkas gambar CV dengan Gemini OCR aktif: berhasil ekstrak teks dan is_scan=False
+    def mock_gemini_vision(file_bytes, mime_type, api_key=None, timeout=25):
+        return """
+        Budi Santoso
+        Email: budi.santoso@example.com | 08123456789
+        
+        Pendidikan:
+        S1 Manajemen Bisnis, Universitas Gadjah Mada (2020-2024), IPK 3.80
+        
+        Pengalaman Kerja:
+        Business Development Intern di PT Maju Mundur (Jan 2023 - Des 2023)
+        Melakukan riset pasar, pitching klien, dan negosiasi kerja sama.
+        
+        Keahlian:
+        Sales, Marketing, Negosiasi, Pitching, Riset Pasar
+        """
+
+    monkeypatch.setattr("api._lib.gemini.extract_text_via_gemini_vision", mock_gemini_vision)
+    res_ocr = parse_cv_document(dummy_img, "image/png", "cv_pelamar.png")
+    assert res_ocr["is_scan"] is False
+    assert "ocr_gemini" in res_ocr["flags"]
+    assert "Budi Santoso" in res_ocr["text"]
+    assert "Manajemen Bisnis" in res_ocr["text"]
+

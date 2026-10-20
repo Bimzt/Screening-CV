@@ -1,49 +1,49 @@
 {
   "version": "1.0",
-  "division": "CEO Staff",
+  "division": "CEO STAFF",
   "divisionAliases": [
     "ceo staff",
-    "ceo",
-    "chief executive officer staff",
-    "executive assistant",
     "staff ceo",
-    "ea",
-    "sekretaris eksekutif",
-    "business executive"
+    "ceo assistant",
+    "chief executive assistant",
+    "ceo office",
+    "ceo support",
+    "executive support",
+    "executive assistant",
+    "ceo",
+    "ea"
   ],
-  "title": "CEO Staff",
-  "jd": "Mendukung operasional harian CEO, menyusun riset industri dan ringkasan eksekutif bisnis, mengoordinasikan rapat strategis tingkat direksi, menyusun materi presentasi eksekutif (pitch deck / business review), serta mengawal tindak lanjut rencana aksi strategis antar divisi perusahaan.",
+  "title": "CEO STAFF Intern",
+  "jd": "mendukung CEO dalam koordinasi lintas divisi, menyampaikan arahan strategis, memantau progres kerja, serta memastikan pencapaian target perusahaan.",
   "hardRequirements": {
     "mandatorySkills": {
       "items": [
-        "Komunikasi",
-        "Problem Solving"
+        "Leadership",
+        "Team Coordinator",
+        "Decision Maker",
+        "Team Supervision",
+        "Performance Monitoring",
+        "Communication",
+        "Team Motivation"
       ],
-      "rule": "all"
+      "rule": "min_n",
+      "minCount": 2
     },
-    "minGpa": 3.3,
+    "minGpa": 3.2,
     "allowedMajors": [
-      "Manajemen",
-      "Bisnis",
-      "Ilmu Komunikasi",
-      "Hubungan Internasional",
-      "Administrasi Bisnis",
-      "Administrasi Publik",
-      "Ekonomi",
-      "Teknik Industri",
-      "Hukum"
+      "Semua jurusan",
+      "manajemen",
+      "bisnis",
+      "hukum",
+      "komunikasi"
     ]
   },
   "additionalSkills": [
-    "Executive Assistant",
-    "PowerPoint",
-    "Pitch Deck",
-    "Notulen",
-    "Riset Pasar",
-    "Project Management",
-    "Kepemimpinan",
-    "Business Strategy",
-    "English"
+    "Leadership",
+    "Problem Solving",
+    "Proaktif",
+    "Komunikatif",
+    "Tim Management"
   ],
   "categories": {
     "experience": {
@@ -68,7 +68,7 @@
     }
   },
   "thresholds": {
-    "durationMonths": 12,
-    "projectsCount": 2
+    "durationMonths": 0,
+    "projectsCount": 0
   }
 }

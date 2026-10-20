@@ -121,9 +121,6 @@ export default function ProfileManager({
             <Briefcase className="w-5 h-5 text-indigo-400" />
             Profil Lowongan Divisi
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Konfigurasi kriteria penilaian dan JD untuk setiap divisi pelamar.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

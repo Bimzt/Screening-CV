@@ -8,12 +8,13 @@ Dilengkapi proteksi timeout & fallback otomatis ke gemini-3.5-flash-lite jika mo
 
 import os
 import json
+import base64
 import urllib.request
 import urllib.error
 from typing import Dict, Any, List, Optional
 
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
-FALLBACK_GEMINI_MODEL = "gemini-3.5-flash-lite"
+DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview"
+FALLBACK_GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 
 def _safe_float(val: Any, default: float = 0.0) -> float:
@@ -127,6 +128,7 @@ DATA KANDIDAT TERATAS UNTUK DIEVALUASI:
 
 INSTRUKSI PENILAIAN KOMPREHENSIF (DETAIL & MENDALAM):
 Sebagai Senior Talent Assessor & Recruiting Lead, berikan evaluasi mendalam, objektif, dan jelas (JANGAN TERLALU RINGKAS) untuk setiap kandidat:
+- DUKUNGAN DWIBAHASA PENUH: CV kandidat dapat ditulis dalam Bahasa Inggris (English), Bahasa Indonesia, atau campuran keduanya. Nilai secara adil berdasarkan substansi kompetensi dan pengalaman nyata kandidat tanpa bias bahasa. Seluruh teks evaluasi ('executiveSummary', 'keyStrength', 'strengths', 'areasToProbe', 'interviewQuestion') WAJIB disajikan dalam Bahasa Indonesia yang profesional dan tajam.
 1. 'contextualScore' (skor angka 0 - 100): evaluasi kesiapan kerja praktis terhadap JD.
 2. 'practicalLevel': 'Tinggi' (bukti eksekusi/portofolio kuat), 'Sedang' (ada pengalaman relevan), atau 'Dasar' (hanya kursus/teori/kata kunci).
 3. 'executiveSummary': Uraian evaluasi mendalam dan jelas (3 - 5 kalimat komprehensif) yang menjelaskan:
@@ -182,8 +184,8 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
                 headers={"Content-Type": "application/json"},
                 method="POST"
             )
-            # Timeout 8.0 detik per request agar cukup waktu untuk respons mendalam tanpa hang
-            with urllib.request.urlopen(req, timeout=8.0) as response:
+            # Timeout 18.0 detik per request agar cukup waktu untuk respons analisis mendalam dari Gemini
+            with urllib.request.urlopen(req, timeout=18.0) as response:
                 res_body = response.read().decode("utf-8")
                 res_json = json.loads(res_body)
 
@@ -255,3 +257,101 @@ Kembalikan HANYA format JSON valid tanpa markdown formatting tambahan dengan str
             continue
 
     return {}
+
+
+def extract_text_via_gemini_vision(
+    file_bytes: bytes,
+    mime_type: str,
+    api_key: Optional[str] = None,
+    timeout: int = 25
+) -> Optional[str]:
+    """
+    Mengekstrak seluruh teks dan informasi dari berkas gambar CV (PNG/JPG/WEBP) atau PDF scan
+    menggunakan Google Gemini Multimodal Vision API.
+    """
+    key = (api_key or os.environ.get("GEMINI_API_KEY", "")).strip()
+    if not key or not file_bytes:
+        return None
+
+    # Normalisasi MIME type untuk input Gemini API
+    m = mime_type.lower()
+    if "pdf" in m:
+        norm_mime = "application/pdf"
+    elif "png" in m:
+        norm_mime = "image/png"
+    elif "webp" in m:
+        norm_mime = "image/webp"
+    else:
+        norm_mime = "image/jpeg"
+
+    b64_data = base64.b64encode(file_bytes).decode("utf-8")
+
+    prompt = (
+        "Anda adalah asisten OCR ahli dan sangat teliti untuk berkas CV/Resume rekrutmen kerja.\n"
+        "Tugas Anda: Bacalah dokumen/gambar CV ini dan salin SELURUH teks serta informasi di dalamnya secara lengkap dan terstruktur tanpa ada bagian yang terlewat.\n\n"
+        "Pastikan mengekstrak seluruh informasi yang tertulis:\n"
+        "1. Identitas & Kontak: Nama lengkap, email, nomor HP/WhatsApp, kota domisili, link LinkedIn, GitHub, portofolio, dan media sosial.\n"
+        "2. Pendidikan: Nama universitas/institut/sekolah, jenjang (S1/D3/D4/SMA), jurusan/program studi, nilai IPK/GPA (contoh: 3.75), dan tahun kelulusan/semester.\n"
+        "3. Pengalaman Kerja / Magang / Organisasi: Nama instansi/perusahaan, posisi/jabatan, durasi/periode kerja (bulan & tahun), serta seluruh uraian tugas dan pencapaian.\n"
+        "4. Proyek / Portofolio: Judul proyek, deskripsi, teknologi/tools yang digunakan, serta tautan terkait.\n"
+        "5. Keahlian & Tools: Semua skill teknis (hard skills), soft skills, aplikasi/software yang dikuasai, dan bahasa.\n"
+        "6. Sertifikasi & Penghargaan: Nama sertifikasi/kursus, lembaga penerbit, dan tahun.\n\n"
+        "Salin teks secara akurat dan lengkap sesuai dokumen aslinya. Gunakan heading seksi yang jelas (Pendidikan, Pengalaman, Proyek, Keahlian, Sertifikasi)."
+    )
+
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "inlineData": {
+                            "mimeType": norm_mime,
+                            "data": b64_data
+                        }
+                    },
+                    {
+                        "text": prompt
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.1
+        }
+    }
+
+    model_name = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip()
+    if model_name.startswith("models/"):
+        model_name = model_name[len("models/"):]
+
+    models_to_try = [model_name]
+    if FALLBACK_GEMINI_MODEL not in models_to_try:
+        models_to_try.append(FALLBACK_GEMINI_MODEL)
+
+    data_json = json.dumps(payload).encode("utf-8")
+
+    for current_model in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={key}"
+        try:
+            req = urllib.request.Request(
+                url,
+                data=data_json,
+                headers={"Content-Type": "application/json; charset=utf-8"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                resp_bytes = resp.read()
+                resp_json = json.loads(resp_bytes.decode("utf-8"))
+                candidates = resp_json.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts and "text" in parts[0]:
+                        extracted = parts[0]["text"].strip()
+                        if len(extracted) >= 50:
+                            return extracted
+        except Exception as e:
+            print(f"[Gemini Vision OCR Warning with model {current_model}]: {e}")
+            continue
+
+    return None
+

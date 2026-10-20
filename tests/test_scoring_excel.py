@@ -455,5 +455,81 @@ def test_api_evaluate_handler():
                 assert "c1" in sent_responses[0][1]["data"]
 
 
+def test_zero_thresholds_and_all_majors():
+    """
+    Memastikan threshold 0 tidak menyebabkan ZeroDivisionError,
+    dan aturan 'semua jurusan' tidak menggugurkan kandidat jurusan apapun.
+    """
+    from api._lib.scoring import calculate_category_scores, evaluate_hard_requirements
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
+    profile = {
+        "division": "BUSDEV",
+        "title": "BUSDEV Intern",
+        "jd": "melakukan riset pasar, negosiasi, dan kemitraan bisnis.",
+        "categories": {
+            "experience": {"label": "Pengalaman", "weight": 30, "active": True},
+            "projects": {"label": "Project", "weight": 10, "active": True},
+            "cert_edu": {"label": "Pendidikan", "weight": 25, "active": True},
+            "competencies": {"label": "Kompetensi", "weight": 35, "active": True},
+        },
+        "thresholds": {"durationMonths": 0, "projectsCount": 0},
+        "hardRequirements": {
+            "minGpa": 3.2,
+            "allowedMajors": ["semua jurusan", "diutamakan Manajemen", "Bisnis"],
+            "mandatorySkills": {
+                "items": ["Negosiasi", "Komunikasi"],
+                "rule": "min_n",
+                "minCount": 1
+            }
+        },
+        "additionalSkills": ["Sales", "Marketing", "Pitching"]
+    }
+
+    # Kandidat dengan 0 bulan pengalaman dan 0 project, jurusan Teknik Sipil
+    candidate = {
+        "fileId": "c_zero",
+        "fields": {
+            "name": "Budi Zero",
+            "major": "Teknik Sipil",
+            "gpa": 3.5,
+            "experiences": [],
+            "projects": [],
+            "skillsFound": ["Negosiasi"]
+        },
+        "sections": {
+            "experience": "Belum ada pengalaman formal.",
+            "projects": "",
+            "certifications": "Pelatihan Negosiasi",
+            "skills": "Negosiasi, Sales"
+        },
+        "fieldStatus": {"gpa": "ok", "major": "ok"}
+    }
+
+    # 1. Evaluasi hard requirements: Teknik Sipil harus memenuhi karena semua jurusan diterima
+    status, reasons = evaluate_hard_requirements(candidate, profile, "Belum ada pengalaman formal. Pelatihan Negosiasi. Negosiasi, Sales")
+    assert status == "Memenuhi"
+    assert any("terbuka semua jurusan" in r.lower() or "sesuai" in r.lower() for r in reasons)
+
+    # 2. Hitung category scores: dur_score dan count_score harus 100.0 (karena threshold 0)
+    vec = TfidfVectorizer().fit([profile["jd"], "Belum ada pengalaman formal."])
+    cat_scores, final_score, score_reasons = calculate_category_scores(
+        candidate=candidate,
+        profile=profile,
+        vec=vec,
+        jd_text=profile["jd"],
+        all_cv_text="Belum ada pengalaman formal. Pelatihan Negosiasi. Negosiasi, Sales"
+    )
+
+    assert "experience" in cat_scores
+    assert "projects" in cat_scores
+    # exp_score = 0.70*sim + 0.30*100.0 >= 30.0
+    assert cat_scores["experience"] >= 30.0
+    # proj_score = 0.70*sim + 0.30*100.0 >= 30.0
+    assert cat_scores["projects"] >= 30.0
+    assert final_score > 0
+
+
+
 
 

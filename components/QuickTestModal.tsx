@@ -195,14 +195,14 @@ export default function QuickTestModal({
             <label className="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-slate-950/40 group">
               <UploadCloud className="w-10 h-10 text-slate-600 group-hover:text-indigo-400 transition-colors mb-2" />
               <span className="text-sm font-semibold text-slate-200">
-                {selectedFile ? selectedFile.name : "Klik atau seret 1 berkas CV ke sini (PDF / DOCX)"}
+                {selectedFile ? selectedFile.name : "Klik atau seret 1 berkas CV ke sini (PDF / DOCX / Gambar)"}
               </span>
               <span className="text-xs text-slate-500 mt-1">
-                Aplikasi akan mengevaluasi berkas ini ke {profiles.length} profil divisi secara otomatis
+                Mendukung PDF teks, PDF scan, DOCX, dan Gambar CV (PNG / JPG) dengan Gemini Vision OCR
               </span>
               <input
                 type="file"
-                accept=".pdf,.docx"
+                accept=".pdf,.docx,.png,.jpg,.jpeg,.webp"
                 disabled={isProcessing}
                 onChange={(e) => {
                   const f = e.target.files?.[0];

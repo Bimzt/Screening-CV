@@ -41,6 +41,7 @@ def safe_skill_match(skill: str, text: str) -> bool:
     """
     Pencocokan skill yang aman terhadap regex (literal escape)
     dan peka batas kata (word boundary), aman untuk c++, c#, .net, power bi.
+    Mendukung sinonim umum (google spreadsheet -> google sheets, dsb).
     """
     if not skill or not text:
         return False
@@ -51,7 +52,227 @@ def safe_skill_match(skill: str, text: str) -> bool:
     # Karakter khusus seperti c++, c#, .net membutuhkan boundary non-alfanumerik
     escaped = re.escape(cleaned_skill)
     pattern = rf"(?:^|[\s,;:\(\)\[\]\/\-\|\.\*•])({escaped})(?:$|[\s,;:\(\)\[\]\/\-\|\.\*•])"
-    return bool(re.search(pattern, cleaned_text))
+    if bool(re.search(pattern, cleaned_text)):
+        return True
+
+    # Kamus sinonim dan padanan kompetensi dwibahasa (ID & EN)
+    synonyms = {
+        # Riset & Analisis
+        "riset pasar": ["market research", "market analysis", "industry research"],
+        "market research": ["riset pasar", "market analysis", "industry research"],
+        "riset kompetitor": ["competitor research", "competitive analysis", "competitor analysis", "analisis kompetitor"],
+        "competitor research": ["riset kompetitor", "competitive analysis", "competitor analysis", "analisis kompetitor"],
+        "analisis data": ["data analysis", "data analytics", "data analytic"],
+        "data analysis": ["analisis data", "data analytics", "data analytic"],
+        "analisis keuangan": ["financial analysis", "financial modeling", "analisa keuangan"],
+        "financial analysis": ["analisis keuangan", "financial modeling"],
+
+        # Bisnis, Penjualan & Kemitraan
+        "negosiasi": ["negotiation", "negotiating", "deal closing", "contract negotiation"],
+        "negotiation": ["negosiasi", "negotiating", "deal closing"],
+        "penjualan": ["sales", "selling", "b2b sales", "b2c sales", "direct sales"],
+        "sales": ["penjualan", "selling", "b2b sales", "b2c sales", "sales pipeline"],
+        "kemitraan": ["partnership", "partnerships", "strategic partnership", "kerja sama", "kerjasama", "business partnership"],
+        "partnership": ["kemitraan", "partnerships", "strategic partnership", "kerja sama", "kerjasama"],
+        "pengembangan bisnis": ["business development", "bizdev", "busdev"],
+        "business development": ["pengembangan bisnis", "bizdev", "busdev"],
+        "pengelolaan database leads": ["lead management", "leads management", "crm", "lead generation", "prospecting"],
+        "lead management": ["pengelolaan leads", "database leads", "crm", "lead generation"],
+        "pitch deck": ["pitching", "pitched", "pitch", "presentation deck", "proposal bisnis", "business proposal"],
+        "pitching": ["pitch deck", "pitched", "pitch", "presentation deck", "presentasi proposal", "client pitching"],
+        "proposal": ["business proposal", "proposal bisnis", "penyusunan proposal", "proposal preparation"],
+
+        # Konten & Media Kreatif
+        "pembuatan konten": ["content creation", "content creator", "content producing", "membuat konten"],
+        "content creation": ["pembuatan konten", "content creator", "content production", "membuat konten"],
+        "manajemen media sosial": ["social media management", "smm", "social media marketing", "kelola media sosial"],
+        "social media management": ["manajemen media sosial", "smm", "social media strategy", "kelola sosmed"],
+        "penulisan naskah": ["copywriting", "copywriter", "scriptwriting", "content writing", "penulisan konten"],
+        "copywriting": ["penulisan naskah", "copywriter", "penulisan konten", "content writing"],
+        "penyuntingan video": ["video editing", "video editor", "edit video", "video production"],
+        "video editing": ["penyuntingan video", "video editor", "edit video", "video production"],
+        "desain grafis": ["graphic design", "graphic designer", "visual design", "desain grafis"],
+        "graphic design": ["desain grafis", "graphic designer", "visual design"],
+        "perencanaan konten": ["content planning", "content calendar", "editorial calendar", "jadwal konten"],
+        "content planning": ["perencanaan konten", "content calendar", "editorial calendar"],
+        "fotografi": ["photography", "photographer"],
+        "photography": ["fotografi", "photographer"],
+        "videografi": ["videography", "videographer"],
+        "videography": ["videografi", "videographer"],
+
+        # Pemasaran Digital
+        "pemasaran digital": ["digital marketing", "online marketing", "internet marketing"],
+        "digital marketing": ["pemasaran digital", "online marketing"],
+        "search engine optimization": ["seo", "optimasi mesin pencari"],
+        "seo": ["search engine optimization", "optimasi mesin pencari"],
+        "social media advertising": ["meta ads", "facebook ads", "fb ads", "instagram ads", "tiktok ads", "google ads"],
+
+        # Komunikasi & Hubungan Masyarakat
+        "komunikasi": ["communication", "communications", "interpersonal skills", "komunikasi interpersonal"],
+        "communication": ["komunikasi", "interpersonal communication", "interpersonal skills"],
+        "public speaking": ["berbicara di depan umum", "presentasi", "presentation skills"],
+        "hubungan masyarakat": ["public relations", "pr", "humas"],
+        "public relations": ["hubungan masyarakat", "humas", "pr", "media relations"],
+        "layanan pelanggan": ["customer service", "customer support", "client handling", "customer relationship"],
+        "customer service": ["layanan pelanggan", "customer support", "client relations"],
+
+        # Manajemen & Soft Skills
+        "manajemen waktu": ["time management", "pengelolaan waktu"],
+        "time management": ["manajemen waktu", "pengelolaan waktu"],
+        "tim management": ["team management", "time management"],
+        "kepemimpinan": ["leadership", "leading a team", "team leadership", "memimpin tim"],
+        "leadership": ["kepemimpinan", "team leadership", "leading teams", "memimpin tim"],
+        "kerja sama tim": ["teamwork", "team collaboration", "collaboration", "bekerja sama dalam tim"],
+        "teamwork": ["kerja sama tim", "team collaboration", "collaboration", "kerjasama tim"],
+        "pemecahan masalah": ["problem solving", "critical thinking", "penyelesaian masalah"],
+        "problem solving": ["pemecahan masalah", "critical thinking", "solutif"],
+        "berpikir kritis": ["critical thinking", "analytical thinking", "berpikir analitis"],
+        "critical thinking": ["berpikir kritis", "analytical thinking"],
+        "perhatian terhadap detail": ["attention to detail", "detail oriented", "teliti"],
+        "attention to detail": ["perhatian terhadap detail", "detail oriented", "teliti"],
+        "manajemen proyek": ["project management", "project coordinator", "manajemen proyek"],
+        "project management": ["manajemen proyek", "project coordination"],
+        "manajemen acara": ["event management", "event organizing", "manajemen event", "eo"],
+        "event management": ["manajemen acara", "event organizing", "event organizer"],
+
+        # Alat Kerja & Software
+        "google spreadsheet": ["google sheet", "google sheets", "spreadsheet", "spreadsheets"],
+        "google docs": ["google doc", "gdocs", "gdoc"],
+        "google workspace": ["google suite", "gsuite", "g-suite", "google worskpace"],
+        "microsoft office": ["ms office", "ms. office", "ms-office", "office 365", "msoffice"],
+        "microsoft excel": ["ms excel", "excel", "spreadsheet"],
+        "excel": ["microsoft excel", "ms excel", "spreadsheet"],
+        "canva": ["canva design"],
+        "capcut": ["capcut editing", "cap cut"],
+        "adobe": ["adobe premiere", "adobe photoshop", "photoshop", "illustrator", "premiere"],
+        "adobe premiere": ["premiere pro", "adobe premiere pro"],
+        "adobe photoshop": ["photoshop", "ps"],
+        "adobe illustrator": ["illustrator", "ai"],
+        "figma": ["figma design", "ui/ux design"],
+        "storytelling": ["story telling", "bercerita"],
+        "story telling": ["storytelling"],
+    }
+
+    # 1. Cek langsung dari kamus
+    alt_list = list(synonyms.get(cleaned_skill, []))
+
+    # 2. Cek apakah cleaned_skill ada di dalam salah satu nilai sinonim (pencocokan dua arah)
+    if not alt_list:
+        for key, val_list in synonyms.items():
+            if cleaned_skill in val_list:
+                alt_list.append(key)
+                alt_list.extend([v for v in val_list if v != cleaned_skill])
+                break
+
+    for alt in alt_list:
+        alt_esc = re.escape(alt)
+        alt_pattern = rf"(?:^|[\s,;:\(\)\[\]\/\-\|\.\*•])({alt_esc})(?:$|[\s,;:\(\)\[\]\/\-\|\.\*•])"
+        if bool(re.search(alt_pattern, cleaned_text)):
+            return True
+
+    return False
+
+
+# Klaster Sinonim Jurusan Dwibahasa (Bahasa Indonesia & Bahasa Inggris)
+MAJOR_SYNONYM_CLUSTERS = [
+    # Manajemen & Bisnis
+    {"manajemen", "management", "mgmt", "managerial", "business management", "manajemen bisnis"},
+    {"bisnis", "business", "biz", "bba", "administrasi bisnis", "business administration", "administrasi niaga", "niaga", "commerce"},
+    {"administrasi", "administration", "administrasi publik", "public administration", "administrasi negara", "administrative"},
+    {"pemasaran", "marketing", "digital marketing", "market research", "brand management", "branding", "sales"},
+    {"keuangan", "finance", "financial", "banking", "perbankan", "finansial", "financial management"},
+    {"akuntansi", "accounting", "accountancy", "audit", "auditing", "perpajakan", "tax", "taxation"},
+    {"ekonomi", "economics", "economy", "ekonomi pembangunan", "development economics", "ilmu ekonomi"},
+    {"kewirausahaan", "entrepreneurship", "entrepreneur"},
+
+    # Komunikasi & Media
+    {"komunikasi", "communication", "communications", "communication studies", "communication science", "ilmu komunikasi", "mass communication", "komunikasi massa", "broadcasting", "penyiaran"},
+    {"humas", "hubungan masyarakat", "public relations", "pr"},
+    {"jurnalistik", "journalism", "journalist"},
+    {"media", "mass media", "digital media", "media studies"},
+
+    # Teknologi, Komputer & Sains
+    {"ilmu komputer", "computer science", "cs", "comp sci", "computational science"},
+    {"informatika", "teknik informatika", "informatics", "software engineering", "rekayasa perangkat lunak", "rpl"},
+    {"sistem informasi", "information systems", "is", "information system", "management information systems", "mis", "sistem informasi manajemen"},
+    {"teknologi informasi", "information technology", "it", "ti"},
+    {"sains data", "data science", "data sains", "data analytics", "analitika data", "artificial intelligence", "ai", "kecerdasan buatan"},
+    {"statistika", "statistics", "applied statistics", "statistika terapan", "aktuarial", "actuarial science", "aktuaria"},
+    {"matematika", "mathematics", "math", "applied mathematics"},
+
+    # Desain, Kreatif & Seni
+    {"desain grafis", "graphic design", "graphics design", "graphic designer"},
+    {"desain komunikasi visual", "dkv", "visual communication design", "vcd"},
+    {"desain", "design", "desain produk", "product design", "industrial design", "desain interior", "interior design"},
+    {"multimedia", "digital multimedia", "animasi", "animation", "seni rupa", "fine arts", "visual arts", "arts"},
+
+    # Sosial, Humaniora, Bahasa & Hukum
+    {"psikologi", "psychology", "psychological science"},
+    {"sdm", "sumber daya manusia", "human resources", "human resource", "hr", "hrd", "manajemen sdm", "people management"},
+    {"hukum", "ilmu hukum", "law", "legal", "legal studies", "jurisprudence", "sh"},
+    {"hubungan internasional", "hi", "international relations", "ir", "global affairs", "international studies"},
+    {"sosiologi", "sociology"},
+    {"sastra inggris", "english literature", "english", "bahasa inggris", "english language", "english language and literature"},
+    {"sastra", "literature", "linguistik", "linguistics"},
+
+    # Rekayasa & Teknik (Engineering)
+    {"teknik industri", "industrial engineering", "ie"},
+    {"teknik mesin", "mechanical engineering", "mech eng"},
+    {"teknik elektro", "electrical engineering", "ee"},
+    {"teknik sipil", "civil engineering"},
+    {"teknik kimia", "chemical engineering"},
+    {"teknik lingkungan", "environmental engineering"},
+    {"teknik", "engineering", "engineer"},
+
+    # Pariwisata & Hospitality
+    {"pariwisata", "tourism", "travel", "hospitality", "perhotelan", "hotel management", "event management"},
+
+    # Kesehatan & Pendidikan
+    {"kesehatan masyarakat", "public health"},
+    {"farmasi", "pharmacy"},
+    {"keperawatan", "nursing"},
+    {"kedokteran", "medicine"},
+    {"pendidikan", "education", "keguruan", "teaching"}
+]
+
+
+def is_bilingual_major_match(allowed_major: str, candidate_major: str) -> bool:
+    """
+    Memeriksa apakah jurusan pelamar cocok dengan kriteria jurusan yang diizinkan / diprioritaskan,
+    mendukung padanan dwibahasa (Bahasa Indonesia & Bahasa Inggris) secara menyeluruh.
+    """
+    if not allowed_major or not candidate_major:
+        return False
+
+    a = allowed_major.lower().strip()
+    c = candidate_major.lower().strip()
+
+    # 1. Direct match & substring match
+    if a in c or c in a:
+        return True
+
+    # 2. Tokenized match (e.g. "Manajemen Bisnis" vs "Bisnis")
+    a_tokens = set(re.findall(r"\b[a-z]{3,}\b", a))
+    c_tokens = set(re.findall(r"\b[a-z]{3,}\b", c))
+    if a_tokens and c_tokens and (a_tokens.issubset(c_tokens) or c_tokens.issubset(a_tokens)):
+        return True
+
+    # 3. Cluster / Synonym lookup
+    for cluster in MAJOR_SYNONYM_CLUSTERS:
+        # Cek apakah allowed_major memiliki elemen di cluster ini
+        a_matches_cluster = False
+        for term in cluster:
+            if term in a or a in term or (term in a_tokens):
+                a_matches_cluster = True
+                break
+
+        if a_matches_cluster:
+            # Cek apakah candidate_major juga memiliki elemen di cluster ini
+            for term in cluster:
+                if term in c or c in term or (term in c_tokens):
+                    return True
+
+    return False
 
 
 def compute_cosine_similarity(vec: TfidfVectorizer, text_a: str, text_b: str) -> float:
@@ -140,27 +361,85 @@ def evaluate_hard_requirements(
             pass
 
     # 2. Evaluasi Jurusan
+    # 2. Evaluasi Jurusan (Dukungan Dwibahasa ID & EN)
     allowed_majors = hard_req.get("allowedMajors")
     if allowed_majors and isinstance(allowed_majors, list) and len(allowed_majors) > 0:
         has_any_rule = True
         cand_major = fields.get("major")
         major_stat = field_status.get("major", "tidak_ditemukan")
 
-        if major_stat == "tidak_ditemukan" or not cand_major:
-            needs_review = True
-            reasons.append("Jurusan pelamar tidak terdeteksi pada CV.")
-        else:
-            matched_major = False
-            for allowed in allowed_majors:
-                if allowed.lower() in cand_major.lower() or cand_major.lower() in allowed.lower():
-                    matched_major = True
+        # Cek apakah profil menerima semua jurusan
+        is_all_majors = any("semua" in str(m).lower() for m in allowed_majors)
+
+        # Ekstrak jurusan prioritas (membersihkan kata 'diutamakan', 'atau', 'semua')
+        priority_majors = []
+        for m in allowed_majors:
+            cleaned_m = re.sub(r'^(diutamakan|atau)\s+', '', str(m).strip(), flags=re.I).strip()
+            if cleaned_m and not re.search(r'\bsemua\b', cleaned_m, re.I):
+                priority_majors.append(cleaned_m)
+
+        # Fallback cerdas dwibahasa: Jika jurusan pelamar belum terdeteksi dari parsing awal,
+        # periksa apakah ada penyebutan jurusan yang cocok di seksi pendidikan atau seluruh teks CV
+        if not cand_major or major_stat == "tidak_ditemukan":
+            edu_text = candidate.get("sections", {}).get("education", "")
+            search_pool = (edu_text + "\n" + all_cv_text).lower()
+            target_list = priority_majors if is_all_majors else allowed_majors
+            for target in target_list:
+                cleaned_target = re.sub(r'^(diutamakan|atau)\s+', '', str(target).strip(), flags=re.I).strip()
+                matched_term = None
+                for cluster in MAJOR_SYNONYM_CLUSTERS:
+                    if any(term in cleaned_target.lower() for term in cluster):
+                        for term in cluster:
+                            if re.search(rf"\b{re.escape(term)}\b", search_pool):
+                                matched_term = term
+                                break
+                    if matched_term:
+                        break
+                if not matched_term:
+                    if re.search(rf"\b{re.escape(cleaned_target.lower())}\b", search_pool):
+                        matched_term = cleaned_target.lower()
+
+                if matched_term:
+                    cand_major = matched_term
+                    major_stat = "ok"
+                    fields["major"] = cand_major
+                    field_status["major"] = "ok"
                     break
 
-            if matched_major:
-                reasons.append(f"Jurusan '{cand_major}' sesuai kriteria.")
+        if is_all_majors:
+            if cand_major and major_stat != "tidak_ditemukan":
+                matched_priority = False
+                for p_major in priority_majors:
+                    if is_bilingual_major_match(p_major, cand_major):
+                        matched_priority = True
+                        break
+                if matched_priority:
+                    reasons.append(f"Jurusan '{cand_major}' sesuai kriteria prioritas.")
+                else:
+                    reasons.append(f"Jurusan '{cand_major}' memenuhi syarat (terbuka semua jurusan).")
             else:
-                failed = True
-                reasons.append(f"Jurusan '{cand_major}' tidak masuk dalam daftar yang diterima.")
+                reasons.append("Terbuka untuk semua jurusan.")
+        else:
+            if major_stat == "tidak_ditemukan" or not cand_major:
+                needs_review = True
+                reasons.append("Jurusan pelamar tidak terdeteksi pada CV.")
+            else:
+                matched_major = False
+                for allowed in allowed_majors:
+                    cleaned_allowed = re.sub(r'^(diutamakan|atau)\s+', '', str(allowed).strip(), flags=re.I).strip()
+                    if is_bilingual_major_match(cleaned_allowed, cand_major):
+                        matched_major = True
+                        break
+
+                if matched_major:
+                    reasons.append(f"Jurusan '{cand_major}' sesuai kriteria.")
+                else:
+                    has_diutamakan = any("diutamakan" in str(m).lower() for m in allowed_majors)
+                    if has_diutamakan:
+                        reasons.append(f"Jurusan '{cand_major}' dapat dipertimbangkan (diutamakan: {', '.join(priority_majors or allowed_majors)}).")
+                    else:
+                        failed = True
+                        reasons.append(f"Jurusan '{cand_major}' tidak masuk dalam daftar yang diterima.")
 
     # 3. Evaluasi Kompetensi Wajib
     mand_skills_obj = hard_req.get("mandatorySkills")
@@ -214,18 +493,48 @@ def calculate_category_scores(
     thresholds = profile.get("thresholds", {})
     hard_req = profile.get("hardRequirements", {})
 
-    dur_threshold = thresholds.get("durationMonths", DEFAULT_DURATION_THRESHOLD_MONTHS) or DEFAULT_DURATION_THRESHOLD_MONTHS
-    proj_threshold = thresholds.get("projectsCount", DEFAULT_PROJECTS_THRESHOLD) or DEFAULT_PROJECTS_THRESHOLD
+    dur_raw = thresholds.get("durationMonths")
+    if dur_raw is None:
+        dur_threshold = DEFAULT_DURATION_THRESHOLD_MONTHS
+    else:
+        try:
+            dur_threshold = float(dur_raw)
+        except (ValueError, TypeError):
+            dur_threshold = DEFAULT_DURATION_THRESHOLD_MONTHS
+
+    proj_raw = thresholds.get("projectsCount")
+    if proj_raw is None:
+        proj_threshold = DEFAULT_PROJECTS_THRESHOLD
+    else:
+        try:
+            proj_threshold = float(proj_raw)
+        except (ValueError, TypeError):
+            proj_threshold = DEFAULT_PROJECTS_THRESHOLD
 
     category_scores = {}
     reasons = []
+
+    # Kumpulan seluruh skill relevan untuk penyesuaian semantik dwibahasa
+    mand_items_all = (hard_req.get("mandatorySkills", {}).get("items", []) if hard_req else []) + (profile.get("additionalSkills", []) or [])
 
     # 1. Kategori Pengalaman
     exp_text = sections.get("experience", "")
     exp_sim = compute_cosine_similarity(vec, exp_text, jd_text) * 100.0
     experiences = fields.get("experiences", [])
-    total_months = sum(e.get("durationMonths", 0) for e in experiences)
-    dur_score = min(total_months / dur_threshold, 1.0) * 100.0
+    total_months = sum(e.get("durationMonths", 0) for e in experiences if isinstance(e, dict))
+    if dur_threshold <= 0:
+        dur_score = 100.0
+    else:
+        dur_score = min(total_months / dur_threshold, 1.0) * 100.0
+
+    # Dukungan dwibahasa: padukan kesesuaian skill kompetensi ke dalam skor semantik pengalaman
+    if mand_items_all and exp_text:
+        matched_in_exp = [s for s in mand_items_all if safe_skill_match(s, exp_text)]
+        if matched_in_exp:
+            exp_target_count = max(1, min(2, len(mand_items_all)))
+            exp_skill_density = min(100.0, (len(matched_in_exp) / exp_target_count) * 100.0)
+            exp_sim = max(exp_sim, (0.30 * exp_sim + 0.70 * exp_skill_density))
+
     exp_score = (0.70 * exp_sim) + (0.30 * dur_score)
     category_scores["experience"] = round(exp_score, 1)
 
@@ -237,7 +546,19 @@ def calculate_category_scores(
     proj_text = sections.get("projects", "")
     proj_sim = compute_cosine_similarity(vec, proj_text, jd_text) * 100.0
     projects = fields.get("projects", [])
-    count_score = min(len(projects) / proj_threshold, 1.0) * 100.0
+    if proj_threshold <= 0:
+        count_score = 100.0
+    else:
+        count_score = min(len(projects) / proj_threshold, 1.0) * 100.0
+
+    # Dukungan dwibahasa: padukan kesesuaian skill kompetensi ke dalam skor semantik project
+    if mand_items_all and proj_text:
+        matched_in_proj = [s for s in mand_items_all if safe_skill_match(s, proj_text)]
+        if matched_in_proj:
+            proj_target_count = max(1, min(2, len(mand_items_all)))
+            proj_skill_density = min(100.0, (len(matched_in_proj) / proj_target_count) * 100.0)
+            proj_sim = max(proj_sim, (0.30 * proj_sim + 0.70 * proj_skill_density))
+
     proj_score = (0.70 * proj_sim) + (0.30 * count_score)
     category_scores["projects"] = round(proj_score, 1)
 
@@ -249,12 +570,38 @@ def calculate_category_scores(
     cert_text = sections.get("certifications", "")
     cert_sim = compute_cosine_similarity(vec, cert_text, jd_text) * 100.0
 
+    # Evaluasi relevansi sertifikasi dwibahasa (ID & EN)
+    if cert_text.strip():
+        is_cert_relevant = (
+            any(safe_skill_match(s, cert_text) for s in mand_items_all)
+            or (profile.get("title", "").lower() in cert_text.lower())
+            or (profile.get("division", "").lower() in cert_text.lower())
+        )
+        cert_score = max(cert_sim, 90.0 if is_cert_relevant else 70.0)
+    else:
+        cert_score = 0.0
+
     # Cek apakah profil mensyaratkan jurusan & IPK
-    uses_major = bool(hard_req.get("allowedMajors"))
+    allowed_majors = hard_req.get("allowedMajors") or []
+    is_all_majors = any("semua" in str(m).lower() for m in allowed_majors)
+    priority_majors = []
+    for m in allowed_majors:
+        cleaned_m = re.sub(r'^(diutamakan|atau)\s+', '', str(m).strip(), flags=re.I).strip()
+        if cleaned_m and not re.search(r'\bsemua\b', cleaned_m, re.I):
+            priority_majors.append(cleaned_m)
+
+    uses_major = bool(allowed_majors) and not (is_all_majors and not priority_majors)
     uses_gpa = hard_req.get("minGpa") is not None
 
     cand_major = fields.get("major", "")
-    major_match_score = 100.0 if (uses_major and cand_major) else 50.0
+    if cand_major:
+        if priority_majors:
+            matched_p = any(is_bilingual_major_match(p, cand_major) for p in priority_majors)
+            major_match_score = 100.0 if matched_p else (80.0 if is_all_majors else 50.0)
+        else:
+            major_match_score = 100.0
+    else:
+        major_match_score = 75.0 if is_all_majors else 50.0
 
     gpa_val = fields.get("gpa")
     if gpa_val is not None:
@@ -263,12 +610,21 @@ def calculate_category_scores(
         gpa_norm = 0.0 if uses_gpa else 50.0
 
     # Distribusi bobot sub-komponen dinamis
-    if uses_major and uses_gpa:
-        edu_score = (0.50 * cert_sim) + (0.25 * major_match_score) + (0.25 * gpa_norm)
-    elif uses_major or uses_gpa:
-        edu_score = (0.60 * cert_sim) + (0.40 * (major_match_score if uses_major else gpa_norm))
+    has_cert = bool(cert_text.strip())
+    if has_cert:
+        if uses_major and uses_gpa:
+            edu_score = (0.30 * cert_score) + (0.35 * major_match_score) + (0.35 * gpa_norm)
+        elif uses_major or uses_gpa:
+            edu_score = (0.40 * cert_score) + (0.60 * (major_match_score if uses_major else gpa_norm))
+        else:
+            edu_score = cert_score
     else:
-        edu_score = cert_sim
+        if uses_major and uses_gpa:
+            edu_score = (0.50 * major_match_score) + (0.50 * gpa_norm)
+        elif uses_major or uses_gpa:
+            edu_score = major_match_score if uses_major else gpa_norm
+        else:
+            edu_score = 50.0
 
     category_scores["cert_edu"] = round(edu_score, 1)
 
@@ -351,7 +707,7 @@ def rank_candidates_for_batch(
                 "name": c.get("candidateName", "Pelamar"),
                 "division": ", ".join(c.get("divisionChoices", [])),
                 "issueType": "PDF Scan / Gambar",
-                "suggestedAction": "Lakukan pengecekan manual. OCR belum didukung di V1.",
+                "suggestedAction": c.get("error") or "Lakukan pengecekan manual. OCR tidak berhasil mengekstrak teks dari gambar/scan ini.",
                 "driveLink": c.get("driveLink")
             })
             continue
@@ -472,6 +828,7 @@ def rank_candidates_for_batch(
                 "fileId": cand.get("fileId", ""),
                 "sourceRowIndex": cand.get("sourceRowIndex"),
                 "name": fields.get("name") or cand.get("candidateName") or "Tanpa Nama",
+                "candidateName": fields.get("name") or cand.get("candidateName") or "Tanpa Nama",
                 "email": fields.get("email"),
                 "phone": fields.get("phone"),
                 "university": fields.get("university"),
@@ -540,8 +897,8 @@ def rank_candidates_for_batch(
             try:
                 futures = {executor.submit(_eval_worker, item): item[0] for item in division_tasks.items()}
                 try:
-                    # Batas waktu total 4.5 detik untuk seluruh batch paralel
-                    for fut in as_completed(futures, timeout=4.5):
+                    # Batas waktu total 20 detik untuk seluruh batch evaluasi AI paralel
+                    for fut in as_completed(futures, timeout=20.0):
                         try:
                             d_name, ai_evals = fut.result()
                             if ai_evals and d_name in results_by_division:
@@ -556,7 +913,7 @@ def rank_candidates_for_batch(
                         except Exception:
                             continue
                 except TimeoutError:
-                    print("[Tier 2 AI Warning] Batas waktu 4.5s tercapai. Melanjutkan dengan data ranking yang sudah siap.")
+                    print("[Tier 2 AI Warning] Batas waktu tercapai. Melanjutkan dengan data ranking yang sudah siap.")
             finally:
                 executor.shutdown(wait=False, cancel_futures=True)
 

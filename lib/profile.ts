@@ -166,13 +166,13 @@ export function parseAndValidateProfileJson(jsonString: string): {
 
   // Validasi thresholds
   if (!data.thresholds || typeof data.thresholds !== "object") {
-    data.thresholds = { durationMonths: 12, projectsCount: 3 };
+    data.thresholds = { durationMonths: 0, projectsCount: 0 };
   } else {
-    if (typeof data.thresholds.durationMonths !== "number" || data.thresholds.durationMonths <= 0) {
-      data.thresholds.durationMonths = 12;
+    if (typeof data.thresholds.durationMonths !== "number" || data.thresholds.durationMonths < 0) {
+      data.thresholds.durationMonths = 0;
     }
-    if (typeof data.thresholds.projectsCount !== "number" || data.thresholds.projectsCount <= 0) {
-      data.thresholds.projectsCount = 3;
+    if (typeof data.thresholds.projectsCount !== "number" || data.thresholds.projectsCount < 0) {
+      data.thresholds.projectsCount = 0;
     }
   }
 

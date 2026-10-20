@@ -12,41 +12,28 @@
     "desainer grafis"
   ],
   "title": "Graphic Design Intern",
-  "jd": "Menciptakan aset visual dan desain grafis promosi yang memukau dan konsisten dengan panduan merek (brand guidelines) untuk kebutuhan media sosial, iklan digital, banner event, presentasi, dan materi cetak. Mahir mengoperasikan Adobe Illustrator, Adobe Photoshop, Figma, dan Canva secara profesional.",
+  "jd": "membuat dan mengembangkan desain visual untuk kebutuhan media sosial, seperti konten feed Instagram, reels, poster, dan materi publikasi lainnya. Memastikan desain sesuai dengan identitas visual organisasi, menarik, informatif, dan mudah dipahami oleh audiens.",
   "hardRequirements": {
     "mandatorySkills": {
       "items": [
-        "Photoshop",
-        "Illustrator",
-        "Figma",
-        "Canva"
+        "Canva",
+        "Adobe",
+        "Desain Grafis"
       ],
       "rule": "min_n",
       "minCount": 2
     },
-    "minGpa": 3.0,
+    "minGpa": 3.2,
     "allowedMajors": [
-      "Desain Komunikasi Visual",
-      "DKV",
-      "Desain Grafis",
-      "Desain Produk",
-      "Seni Rupa",
-      "Multimedia",
-      "Teknik Informatika",
-      "Ilmu Komunikasi"
+      "diutamakan DKV",
+      "seni rupa"
     ]
   },
   "additionalSkills": [
-    "Adobe Illustrator",
-    "Adobe Photoshop",
     "Figma",
-    "Canva",
-    "Typography",
-    "Color Theory",
-    "Layouting",
-    "Branding",
-    "UI/UX",
-    "Portofolio"
+    "Adobe Photoshop",
+    "Tipografi",
+    "Google Workspace"
   ],
   "categories": {
     "projects": {
@@ -71,8 +58,8 @@
     }
   },
   "thresholds": {
-    "durationMonths": 6,
-    "projectsCount": 3
+    "durationMonths": 0,
+    "projectsCount": 0
   },
   "customSectionHeadings": [
     "Portofolio Desain",

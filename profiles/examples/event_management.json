@@ -1,7 +1,8 @@
 {
   "version": "1.0",
-  "division": "Event Management",
+  "division": "Event Project",
   "divisionAliases": [
+    "event project",
     "event management",
     "event planner",
     "event organizer",
@@ -11,8 +12,8 @@
     "manajemen event",
     "event intern"
   ],
-  "title": "Event Management Intern",
-  "jd": "Merencanakan dan mengeksekusi rangkaian event online (webinar, workshop) dan offline secara end-to-end, menyusun rundown acara dan teknis pelaksanaan, mengoordinasikan narasumber/speaker dan vendor, memimpin gladi bersih teknis, mengelola registrasi peserta via Google Form/platform tiket, serta melakukan evaluasi feedback pasca-acara guna mencapai target kepuasan peserta.",
+  "title": "Event Project Intern",
+  "jd": "Membantu perencanaan, koordinasi, dan pelaksanaan event, termasuk pengelolaan administrasi, pemantauan timeline, pelaporan progres, serta koordinasi dengan media partner dan pihak terkait.",
   "hardRequirements": {
     "mandatorySkills": {
       "items": [
@@ -23,28 +24,18 @@
       "rule": "min_n",
       "minCount": 2
     },
-    "minGpa": 3.1,
+    "minGpa": 3.2,
     "allowedMajors": [
-      "Ilmu Komunikasi",
-      "Hubungan Masyarakat",
-      "Public Relations",
-      "Manajemen",
-      "Pariwisata",
-      "Desain Komunikasi Visual",
-      "Broadcasting",
-      "Administrasi Bisnis"
+      "semua jurusan"
     ]
   },
   "additionalSkills": [
-    "Zoom Webinar",
-    "Moderator",
-    "Koordinasi Vendor",
-    "Budgeting Event",
-    "Google Forms",
-    "Ticketing",
-    "Problem Solving",
-    "Time Management",
-    "Technical Meeting"
+    "Event Coordinator",
+    "Operator Acara",
+    "Surat Menyurat",
+    "Komunikasi",
+    "Pelaporan",
+    "Kepanitiaan"
   ],
   "categories": {
     "experience": {
@@ -69,7 +60,7 @@
     }
   },
   "thresholds": {
-    "durationMonths": 12,
-    "projectsCount": 3
+    "durationMonths": 0,
+    "projectsCount": 0
   }
 }

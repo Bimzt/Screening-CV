@@ -603,6 +603,15 @@ export default function ResultsStep({
                                     <span>AI: {cand.aiEvaluation.modelUsed ? cand.aiEvaluation.modelUsed.replace("gemini-", "") : "Gemini"}</span>
                                   </span>
                                 )}
+                                {cand.flags?.includes("ocr_gemini") && (
+                                  <span
+                                    className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium flex items-center gap-1"
+                                    title="Dokumen diekstrak menggunakan Gemini Vision OCR (dari gambar/scan)"
+                                  >
+                                    <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                                    <span>OCR Gemini</span>
+                                  </span>
+                                )}
                               </div>
                               <div className="text-[11px] text-slate-400">{cand.email || "-"}</div>
                               {info.c1 && info.c2 ? (

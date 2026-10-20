@@ -63,8 +63,8 @@ function ProfileEditorContent({
         competencies: { label: "Kompetensi", weight: 15, active: true },
       },
       thresholds: {
-        durationMonths: 12,
-        projectsCount: 3,
+        durationMonths: 0,
+        projectsCount: 0,
       },
     };
   });
@@ -403,39 +403,41 @@ function ProfileEditorContent({
               <label className="block text-slate-400 mb-1">Ambang Durasi Pengalaman Penuh (Bulan)</label>
               <input
                 type="number"
-                min="1"
+                min="0"
                 value={formData.thresholds.durationMonths}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
                   setFormData({
                     ...formData,
                     thresholds: {
                       ...formData.thresholds,
-                      durationMonths: parseInt(e.target.value) || 12,
+                      durationMonths: isNaN(val) ? 0 : Math.max(0, val),
                     },
-                  })
-                }
+                  });
+                }}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none"
               />
-              <span className="text-[11px] text-slate-500">Default: 12 bulan untuk skor durasi 100%</span>
+              <span className="text-[11px] text-slate-500">0 = Tanpa ambang batas durasi (skor durasi penuh)</span>
             </div>
             <div>
               <label className="block text-slate-400 mb-1">Ambang Jumlah Project Penuh</label>
               <input
                 type="number"
-                min="1"
+                min="0"
                 value={formData.thresholds.projectsCount}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
                   setFormData({
                     ...formData,
                     thresholds: {
                       ...formData.thresholds,
-                      projectsCount: parseInt(e.target.value) || 3,
+                      projectsCount: isNaN(val) ? 0 : Math.max(0, val),
                     },
-                  })
-                }
+                  });
+                }}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none"
               />
-              <span className="text-[11px] text-slate-500">Default: 3 project untuk skor jumlah 100%</span>
+              <span className="text-[11px] text-slate-500">0 = Tanpa ambang batas project (skor jumlah penuh)</span>
             </div>
           </div>
         </div>

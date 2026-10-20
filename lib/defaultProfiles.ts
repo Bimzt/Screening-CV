@@ -10,7 +10,7 @@ import graphicDesign from "@/profiles/examples/graphic_design.json";
 import socialMediaStrategist from "@/profiles/examples/social_media_strategist.json";
 import { JobProfile } from "./types";
 
-export const DEFAULT_PROFILES_VERSION = "2026-10-19-v2";
+export const DEFAULT_PROFILES_VERSION = "2026-10-20-v1";
 
 export const DEFAULT_EXAMPLE_PROFILES: JobProfile[] = [
   ceoStaff as unknown as JobProfile,

@@ -34,21 +34,151 @@ export interface DivisionMappingResult {
 }
 
 /**
- * Mendeteksi nama kolom secara otomatis berdasarkan header CSV.
+ * Mendeteksi nama kolom secara otomatis berdasarkan header CSV dan konten baris sampel (jika ada).
  */
-export function autoDetectColumns(headers: string[]): CsvColumnMapping {
+export function autoDetectColumns(
+  headers: string[],
+  sampleRows?: Record<string, string>[]
+): CsvColumnMapping {
   const mapping: CsvColumnMapping = {};
-
   const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
+  // 1. Deteksi Kolom Nama
+  // Prioritas 1: nama lengkap / full name persis
   for (const h of headers) {
     const c = clean(h);
-
-    if (!mapping.nameCol && (c.includes("nama") || c.includes("name") || c === "namalengkap")) {
+    if (c === "namalengkap" || c === "fullname" || c === "nama" || c === "name") {
       mapping.nameCol = h;
-    } else if (!mapping.driveLinkCol && (c.includes("cv") || c.includes("resume") || c.includes("drive") || c.includes("berkas") || c.includes("unggah"))) {
-      mapping.driveLinkCol = h;
-    } else if (!mapping.divisionCol && (
+      break;
+    }
+  }
+  // Prioritas 2: nama mengandung "nama" atau "name" tapi bukan nama instansi/kampus/divisi/ortu
+  if (!mapping.nameCol) {
+    for (const h of headers) {
+      const c = clean(h);
+      if (
+        (c.includes("nama") || c.includes("name")) &&
+        !c.includes("perusahaan") &&
+        !c.includes("kampus") &&
+        !c.includes("univ") &&
+        !c.includes("sekolah") &&
+        !c.includes("divisi") &&
+        !c.includes("jabatan") &&
+        !c.includes("ayah") &&
+        !c.includes("ibu") &&
+        !c.includes("ortu")
+      ) {
+        mapping.nameCol = h;
+        break;
+      }
+    }
+  }
+
+  // 2. Deteksi Kolom Link Drive CV
+  // Prioritas 1: Jika ada sampleRows, periksa kolom yang isi selnya berisi link drive.google.com
+  if (sampleRows && sampleRows.length > 0) {
+    for (const h of headers) {
+      const c = clean(h);
+      // Hindari kolom yang jelas-jelas foto, ktp, atau portofolio
+      if (
+        c.includes("foto") ||
+        c.includes("photo") ||
+        c.includes("ktp") ||
+        c.includes("ktm") ||
+        c.includes("portofolio") ||
+        c.includes("portfolio") ||
+        c.includes("sertifikat")
+      ) {
+        continue;
+      }
+      // Hitung baris yang memuat link google drive / docs / pdf di kolom ini
+      const driveMatchCount = sampleRows.slice(0, 15).filter((r) => {
+        const val = (r[h] || "").toLowerCase();
+        return (
+          val.includes("drive.google.com") ||
+          val.includes("docs.google.com") ||
+          val.includes("/file/d/") ||
+          val.includes("/folders/") ||
+          val.endsWith(".pdf")
+        );
+      }).length;
+
+      if (driveMatchCount > 0 && (c.includes("cv") || c.includes("resume") || c.includes("berkas") || c.includes("unggah") || c.includes("link") || c.includes("tautan") || c.includes("drive"))) {
+        mapping.driveLinkCol = h;
+        break;
+      }
+    }
+  }
+
+  // Prioritas 2: Kolom yang memuat kata "cv", "resume", "curriculum" (eksklusif bukan portofolio/foto)
+  if (!mapping.driveLinkCol) {
+    for (const h of headers) {
+      const c = clean(h);
+      if (
+        (c.includes("cv") || c.includes("resume") || c.includes("curriculumvitae")) &&
+        !c.includes("portofolio") &&
+        !c.includes("portfolio") &&
+        !c.includes("foto") &&
+        !c.includes("photo") &&
+        !c.includes("ktp") &&
+        !c.includes("ktm") &&
+        !c.includes("sertifikat")
+      ) {
+        mapping.driveLinkCol = h;
+        break;
+      }
+    }
+  }
+
+  // Prioritas 3: Kolom yang memuat kata "drive", "link", atau "tautan" (bukan medsos/foto/portofolio)
+  if (!mapping.driveLinkCol) {
+    for (const h of headers) {
+      const c = clean(h);
+      if (
+        (c.includes("drive") || c.includes("link") || c.includes("tautan")) &&
+        !c.includes("portofolio") &&
+        !c.includes("portfolio") &&
+        !c.includes("foto") &&
+        !c.includes("photo") &&
+        !c.includes("ktp") &&
+        !c.includes("ktm") &&
+        !c.includes("sertifikat") &&
+        !c.includes("linkedin") &&
+        !c.includes("instagram") &&
+        !c.includes("tiktok")
+      ) {
+        mapping.driveLinkCol = h;
+        break;
+      }
+    }
+  }
+
+  // Prioritas 4: Kolom yang memuat "berkas", "unggah", "upload", "dokumen" (bukan foto/portofolio/karya)
+  if (!mapping.driveLinkCol) {
+    for (const h of headers) {
+      const c = clean(h);
+      if (
+        (c.includes("berkas") || c.includes("unggah") || c.includes("upload") || c.includes("dokumen")) &&
+        !c.includes("portofolio") &&
+        !c.includes("portfolio") &&
+        !c.includes("foto") &&
+        !c.includes("photo") &&
+        !c.includes("ktp") &&
+        !c.includes("ktm") &&
+        !c.includes("sertifikat") &&
+        !c.includes("karya") &&
+        !c.includes("video")
+      ) {
+        mapping.driveLinkCol = h;
+        break;
+      }
+    }
+  }
+
+  // 3. Deteksi Kolom Divisi Pilihan 1 & 2
+  for (const h of headers) {
+    const c = clean(h);
+    if (!mapping.divisionCol && (
       c.includes("divisi1") || c.includes("pilihan1") || c.includes("divisiutama") || 
       c.includes("firstchoice") || c.includes("pilihanpertama") || c.includes("divisipertama") ||
       c.includes("pilihani") || c.includes("divisii") || c.includes("prioritas1") || c.includes("opsi1")

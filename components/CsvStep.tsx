@@ -63,8 +63,8 @@ export default function CsvStep({
       setRawHeaders(headers);
       setRawRowsData(rows);
 
-      // Auto detect columns
-      const detected = autoDetectColumns(headers);
+      // Auto detect columns dengan inspeksi header dan isi baris CSV
+      const detected = autoDetectColumns(headers, rows);
       setColumnMapping(detected);
     } catch {
       setParsingError("Gagal membaca atau mem-parse berkas CSV.");
@@ -135,9 +135,6 @@ export default function CsvStep({
               <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
               Unggah CSV Respons Formulir Pelamar
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              CSV diekstrak dan di-parse sepenuhnya di browser Anda tanpa diunggah ke server.
-            </p>
           </div>
           {csvFileName && (
             <button
@@ -228,6 +225,14 @@ export default function CsvStep({
                   <option key={h} value={h}>{h}</option>
                 ))}
               </select>
+              {columnMapping.nameCol && (
+                <div className="mt-1 text-[11px] text-slate-400 truncate">
+                  <span className="text-slate-500">Contoh: </span>
+                  <span className="text-slate-200">
+                    {rawRowsData.find(r => r[columnMapping.nameCol!]?.trim())?.[columnMapping.nameCol!] || "(Semua baris kosong)"}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -244,6 +249,36 @@ export default function CsvStep({
                   <option key={h} value={h}>{h}</option>
                 ))}
               </select>
+              {columnMapping.driveLinkCol && (() => {
+                const sampleVal = rawRowsData.find(r => r[columnMapping.driveLinkCol!]?.trim())?.[columnMapping.driveLinkCol!] || "";
+                const sampleLower = sampleVal.toLowerCase();
+                const colLower = columnMapping.driveLinkCol.toLowerCase();
+                const isCanva = sampleLower.includes("canva.com");
+                const isSocial = sampleLower.includes("instagram.com") || sampleLower.includes("linkedin.com") || sampleLower.includes("tiktok.com");
+                const isPhotoOrPort = colLower.includes("foto") || colLower.includes("photo") || colLower.includes("portofolio") || colLower.includes("portfolio");
+                return (
+                  <div className="mt-1.5 space-y-1">
+                    <div className="text-[11px] text-slate-400 truncate">
+                      <span className="text-slate-500">Contoh: </span>
+                      <span className="text-indigo-300 font-mono">
+                        {sampleVal || "(Semua baris kosong)"}
+                      </span>
+                    </div>
+                    {(isCanva || isSocial || isPhotoOrPort) && (
+                      <div className="p-1.5 rounded-lg bg-amber-950/60 border border-amber-800/40 text-[11px] text-amber-300 flex items-start gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                        <span>
+                          {isCanva
+                            ? "Terdeteksi tautan Canva. Pastikan kolom ini memuat berkas Google Drive CV pelamar."
+                            : isPhotoOrPort
+                            ? "Judul kolom mengindikasikan Foto/Portofolio. Pastikan Anda memilih kolom Unggah Berkas CV."
+                            : "Kolom ini berisi tautan media sosial, bukan berkas Google Drive CV."}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             <div>
@@ -260,6 +295,14 @@ export default function CsvStep({
                   <option key={h} value={h}>{h}</option>
                 ))}
               </select>
+              {columnMapping.divisionCol && (
+                <div className="mt-1 text-[11px] text-slate-400 truncate">
+                  <span className="text-slate-500">Contoh: </span>
+                  <span className="text-slate-200">
+                    {rawRowsData.find(r => r[columnMapping.divisionCol!]?.trim())?.[columnMapping.divisionCol!] || "(Semua baris kosong)"}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -277,6 +320,14 @@ export default function CsvStep({
                   <option key={h} value={h}>{h}</option>
                 ))}
               </select>
+              {columnMapping.divisionCol2 && (
+                <div className="mt-1 text-[11px] text-slate-400 truncate">
+                  <span className="text-slate-500">Contoh: </span>
+                  <span className="text-slate-200">
+                    {rawRowsData.find(r => r[columnMapping.divisionCol2!]?.trim())?.[columnMapping.divisionCol2!] || "(Semua baris kosong)"}
+                  </span>
+                </div>
+              )}
             </div>
 
             {columnMapping.divisionCol2 && (
