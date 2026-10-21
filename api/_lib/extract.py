@@ -25,13 +25,156 @@ PORTFOLIO_DOMAINS = [
     "notion.site", "notion.so"
 ]
 
-# Kata kunci kampus (ID & EN)
+# Kata kunci prefiks kampus utama (ID & EN)
+CAMPUS_PREFIX_KEYWORDS = [
+    "universitas", "university", "institut", "institute", "politeknik", "polytechnic",
+    "sekolah tinggi", "akademi", "stmik", "college"
+]
+
+# Kata kunci kampus legacy untuk kompatibilitas
 CAMPUS_KEYWORDS = [
     "universitas", "university", "institut", "institute", "politeknik", "polytechnic",
     "sekolah tinggi", "akademi", "stmik", "college", "school of", "faculty of", "campus",
     "academy", "ui", "itb", "ugm", "its", "undip", "unpad",
     "unair", "binus", "telkom", "ub", "unbraw"
 ]
+
+# Peta akronim kampus ternama ke nama resmi
+KNOWN_CAMPUS_ACRONYMS = {
+    "UI": "Universitas Indonesia",
+    "ITB": "Institut Teknologi Bandung (ITB)",
+    "UGM": "Universitas Gadjah Mada (UGM)",
+    "ITS": "Institut Teknologi Sepuluh Nopember (ITS)",
+    "UNDIP": "Universitas Diponegoro (UNDIP)",
+    "UNPAD": "Universitas Padjadjaran (UNPAD)",
+    "UNAIR": "Universitas Airlangga (UNAIR)",
+    "UB": "Universitas Brawijaya (UB)",
+    "UNBRAW": "Universitas Brawijaya (UB)",
+    "IPB": "IPB University",
+    "BINUS": "Binus University",
+    "TELKOM": "Telkom University",
+    "UNS": "Universitas Sebelas Maret (UNS)",
+    "UNY": "Universitas Negeri Yogyakarta (UNY)",
+    "UNNES": "Universitas Negeri Semarang (UNNES)",
+    "USU": "Universitas Sumatera Utara (USU)",
+    "UNHAS": "Universitas Hasanuddin (UNHAS)",
+    "UNAND": "Universitas Andalas (UNAND)",
+    "UPN": "UPN Veteran",
+    "PNJ": "Politeknik Negeri Jakarta (PNJ)",
+    "POLBAN": "Politeknik Negeri Bandung (POLBAN)",
+    "UNJ": "Universitas Negeri Jakarta (UNJ)",
+    "UMN": "Universitas Multimedia Nusantara (UMN)",
+    "UNTAR": "Universitas Tarumanagara (UNTAR)",
+    "UNPAR": "Universitas Katolik Parahyangan (UNPAR)",
+    "UII": "Universitas Islam Indonesia (UII)",
+    "PRASMUL": "Prasetiya Mulya University",
+    "TRISAKTI": "Universitas Trisakti",
+}
+
+# Lokasi kota/provinsi/negara yang sering menempel di akhir baris nama institusi
+LOCATIONS_TO_STRIP = [
+    "indonesia", "depok", "jakarta barat", "jakarta selatan", "jakarta timur", "jakarta pusat", "jakarta utara",
+    "dki jakarta", "jakarta", "yogyakarta", "jogja", "bandung", "surabaya", "semarang", "malang",
+    "bogor", "surakarta", "solo", "medan", "makassar", "palembang", "padang", "denpasar", "bali",
+    "lampung", "jawa barat", "jawa timur", "jawa tengah", "banten", "tangerang selatan", "tangerang", "bekasi",
+    "west java", "east java", "central java", "south jakarta", "west jakarta"
+]
+
+
+def clean_campus_name(raw: str) -> Optional[str]:
+    """
+    Membersihkan dan menormalisasi nama institusi/kampus:
+    1. Membuang bullet points, icon, dan karakter formatting.
+    2. Mengisolasi bagian kampus jika baris digabung dengan degree, GPA, tahun, atau lokasi.
+    3. Membuang trailing lokasi kota/negara yang menempel dengan koma/strip (tanpa memotong nama resmi seperti Universitas Indonesia).
+    4. Mengembalikan string Title Case yang rapi dengan akronim kapital yang konsisten.
+    """
+    if not raw or not isinstance(raw, str):
+        return None
+    s = raw.strip()
+    # Buang bullet points di awal
+    s = re.sub(r"^[•\-\*\d\.\)\s\uE000-\uF8FF·]+", "", s).strip()
+    if not s:
+        return None
+
+    # Jika baris memuat delimiter pemisah seperti |, —, –, atau dash dengan spasi, ambil part yang memuat kampus
+    parts = re.split(r"\s+[|;—–]\s+|\s+-\s+", s)
+    matched_part = s
+    if len(parts) > 1:
+        for p in parts:
+            p_clean = p.strip()
+            p_lower = p_clean.lower()
+            # Cek apakah bagian ini memuat kata kunci kampus
+            has_kw = any(re.search(rf"\b{re.escape(kw)}\b", p_lower) for kw in CAMPUS_PREFIX_KEYWORDS)
+            has_acr = any(re.search(rf"\b{re.escape(acr)}\b", p_clean) for acr in KNOWN_CAMPUS_ACRONYMS)
+            if has_kw or has_acr:
+                # Prioritaskan part yang bukan sekadar nama fakultas jika memungkinkan
+                matched_part = p_clean
+                if not re.match(r"^(?:faculty\s+of|fakultas|department\s+of|departemen|jurusan)\b", p_lower):
+                    break
+    else:
+        matched_part = parts[0].strip()
+
+    # Jika dipisahkan dengan koma (misal: "Universitas Indonesia, Fakultas Ilmu Komputer" atau "Faculty of Law, Universitas Gadjah Mada")
+    comma_parts = [cp.strip() for cp in matched_part.split(",") if cp.strip()]
+    if len(comma_parts) > 1:
+        found_campus_part = None
+        for cp in comma_parts:
+            cp_lower = cp.lower()
+            has_kw = any(re.search(rf"\b{re.escape(kw)}\b", cp_lower) for kw in CAMPUS_PREFIX_KEYWORDS)
+            has_acr = any(re.search(rf"\b{re.escape(acr)}\b", cp) for acr in KNOWN_CAMPUS_ACRONYMS)
+            if (has_kw or has_acr) and not re.match(r"^(?:faculty\s+of|fakultas|department\s+of|departemen|jurusan)\b", cp_lower):
+                found_campus_part = cp
+                break
+        if found_campus_part:
+            matched_part = found_campus_part
+        elif comma_parts:
+            matched_part = comma_parts[0]
+
+    # Buang trailing lokasi jika didahului koma, tanda minus, atau kurung
+    changed = True
+    while changed:
+        changed = False
+        for loc in LOCATIONS_TO_STRIP:
+            if matched_part.lower() in ("universitas indonesia", "universitas islam indonesia", "universitas pendidikan indonesia"):
+                break
+            pattern = re.compile(rf"(?:,\s*|\s*-\s*|\s*\|\s*|\(\s*){re.escape(loc)}\s*\)?$", re.IGNORECASE)
+            new_s = pattern.sub("", matched_part).strip()
+            if new_s != matched_part:
+                matched_part = new_s
+                changed = True
+
+    # Buang informasi IPK, tahun, gelar yang tersisa di akhir
+    matched_part = re.sub(r"\(.*?(?:20[12][0-9]|gpa|ipk|cum laude).*?\)", "", matched_part, flags=re.I).strip()
+    matched_part = re.sub(r"\b(?:gpa|ipk)[\s:]*[\d\.,]+.*$", "", matched_part, flags=re.I).strip()
+    matched_part = re.sub(r"\b(?:20[12][0-9])\b.*$", "", matched_part).strip()
+    matched_part = re.sub(r"[,:\-–—\s/|]+$", "", matched_part).strip()
+
+    if not matched_part or len(matched_part) < 2:
+        return None
+
+    # Cek apakah cocok tepat dengan akronim kampus
+    for acr, full_name in KNOWN_CAMPUS_ACRONYMS.items():
+        if re.search(rf"^\s*{acr}\s*$", matched_part, re.I):
+            return full_name
+
+    # Format Title Case dan amankan akronim kapital
+    words = matched_part.split()
+    capitalized = []
+    for w in words:
+        w_clean = w.strip("(),.")
+        w_upper = w_clean.upper()
+        if w_upper in KNOWN_CAMPUS_ACRONYMS or w_upper in ("ITB", "UI", "UGM", "ITS", "UB", "UNDIP", "UNPAD", "UNAIR", "IPB", "BINUS", "TELKOM", "D3", "D4", "S1", "S2"):
+            prefix = "(" if w.startswith("(") else ""
+            suffix = ")" if w.endswith(")") else ""
+            capitalized.append(f"{prefix}{w_upper}{suffix}")
+        elif w.lower() in ("of", "and", "&"):
+            capitalized.append(w.lower())
+        else:
+            capitalized.append(w.capitalize())
+
+    result = " ".join(capitalized).strip()
+    return result if len(result) >= 2 else None
 
 # Kata kunci derajat / prefix jurusan untuk normalisasi (ID & EN)
 MAJOR_PREFIXES = [
@@ -246,9 +389,31 @@ def normalize_major(major_raw: str) -> str:
 def extract_education_details(edu_text: str, full_text: str) -> Dict[str, Any]:
     """
     Mengekstrak kampus, jurusan, tahun lulus / semester dari seksi pendidikan (ID & EN).
+    Dukungan komprehensif: multi-line split healing, pembersihan delimiter/lokasi,
+    normalisasi akronim kampus, dan fallback cerdas.
     """
     search_text = edu_text if edu_text.strip() else full_text
-    lines = [line.strip() for line in search_text.splitlines() if line.strip()]
+    raw_lines = [line.strip() for line in search_text.splitlines() if line.strip()]
+
+    # Multi-line healing: gabungkan baris yang terpotong di PDF seperti "Universitas" + "Indonesia"
+    lines = []
+    skip_next = False
+    GENERIC_INSTITUTION_HEADS = {
+        "universitas", "institut", "institut teknologi", "politeknik", "politeknik negeri",
+        "sekolah tinggi", "akademi", "university of", "institute of", "faculty of"
+    }
+    for idx, l in enumerate(raw_lines):
+        if skip_next:
+            skip_next = False
+            continue
+        l_clean = l.strip()
+        l_lower = l_clean.lower()
+        if l_lower in GENERIC_INSTITUTION_HEADS and idx + 1 < len(raw_lines):
+            next_l = raw_lines[idx + 1].strip()
+            lines.append(f"{l_clean} {next_l}")
+            skip_next = True
+        else:
+            lines.append(l_clean)
 
     campus = None
     campus_status = "tidak_ditemukan"
@@ -261,14 +426,24 @@ def extract_education_details(edu_text: str, full_text: str) -> Dict[str, Any]:
     if not sem_match:
         sem_match = re.search(r"\b([1-8])(?:th|st|nd|rd)?\s*(?:semester|sem\.?)\b", search_text, re.IGNORECASE)
 
-    # Deteksi tahun kelulusan dengan label eksplisit (Class of 2024, Expected Graduation: 2025, Graduated 2023)
-    exp_grad_match = re.search(r"\b(?:class\s+of|expected\s+graduation|graduation|graduated|lulus(?:an)?)\s*[:\-]?\s*(20[12][0-9])\b", search_text, re.I)
-    year_match = exp_grad_match or re.search(r"\b(20[12][0-9])\b", search_text)
+    # Deteksi rentang tahun (e.g. 2020 - 2024, 2019/2023) untuk menentukan tahun kelulusan riil (akhir masa studi)
+    range_match = re.findall(r"\b(20[12][0-9])\s*(?:[-–—/]|to|sampai|s\.d\.?)\s*(20[12][0-9]|present|sekarang|current)\b", search_text, re.I)
+    exp_grad_match = re.search(r"\b(?:class\s+of|expected\s+graduation|graduation|graduated|lulus(?:an)?|thn\s+lulus)\s*[:\-]?\s*(20[12][0-9])\b", search_text, re.I)
 
     if sem_match:
         grad_year_or_semester = f"Semester {sem_match.group(1)}"
-    elif year_match:
-        grad_year_or_semester = f"Lulus {year_match.group(1)}"
+    elif exp_grad_match:
+        grad_year_or_semester = f"Lulus {exp_grad_match.group(1)}"
+    elif range_match:
+        end_val = range_match[-1][1].strip().lower()
+        if end_val in ("present", "sekarang", "current"):
+            grad_year_or_semester = f"Aktif (Mulai {range_match[-1][0]})"
+        else:
+            grad_year_or_semester = f"Lulus {end_val}"
+    else:
+        all_years = re.findall(r"\b(20[12][0-9])\b", search_text)
+        if all_years:
+            grad_year_or_semester = f"Lulus {all_years[-1]}"
 
     # Kata-kata generik derajat yang tidak boleh dianggap sebagai jurusan akhir
     GENERIC_DEGREE_WORDS = {"science", "arts", "applied science", "degree", "bachelor", "master", "sarjana", "undergraduate", "study"}
@@ -289,11 +464,16 @@ def extract_education_details(edu_text: str, full_text: str) -> Dict[str, Any]:
 
         # Deteksi kampus
         if not campus:
-            for kw in CAMPUS_KEYWORDS:
-                if kw in line_lower:
-                    campus = line
+            # 1. Cek prefiks institusi dengan word boundary
+            has_pref = any(re.search(rf"\b{re.escape(kw)}\b", line_lower) for kw in CAMPUS_PREFIX_KEYWORDS)
+            # 2. Cek akronim kampus ternama dengan word boundary
+            has_acr = any(re.search(rf"\b{re.escape(acr)}\b", line) for acr in KNOWN_CAMPUS_ACRONYMS)
+
+            if has_pref or has_acr:
+                cleaned_c = clean_campus_name(line)
+                if cleaned_c and len(cleaned_c) >= 3 and cleaned_c.lower() not in GENERIC_DEGREE_WORDS:
+                    campus = cleaned_c
                     campus_status = "ok"
-                    break
 
         # Deteksi jurusan
         if not major:
@@ -354,7 +534,31 @@ def extract_education_details(edu_text: str, full_text: str) -> Dict[str, Any]:
                                 major_status = "ok"
                         break
 
-    # 5. Global Fallback: jika seksi pendidikan tidak mendeteksi jurusan, cari di seluruh dokumen CV
+    # 5. Global Fallback untuk Kampus jika tidak ditemukan di seksi pendidikan
+    if not campus and full_text.strip():
+        # Cari pola eksplisit universitas/institut/politeknik di seluruh dokumen
+        global_campus_match = re.search(
+            r"\b(?:Universitas|Institut|Politeknik|Sekolah\s+Tinggi|Akademi|University|Institute\s+of)\s+[A-Za-z0-9\s&'-]{3,45}",
+            full_text,
+            re.IGNORECASE
+        )
+        if global_campus_match:
+            c_cand = clean_campus_name(global_campus_match.group(0))
+            if c_cand and len(c_cand) >= 3:
+                campus = c_cand
+                campus_status = "ok"
+        else:
+            # Cek akronim kampus terkemuka (UI, ITB, dsb.) dengan word boundary di seluruh teks
+            for acr, full_name in KNOWN_CAMPUS_ACRONYMS.items():
+                if re.search(rf"\b{re.escape(acr)}\b", full_text):
+                    # Khusus akronim 2 huruf, pastikan bukan false positive umum
+                    if acr in ("UI", "UB") and not re.search(rf"\b(?:alumni|kampus|lulusan|mahasiswa|universitas|jurusan|ipk)\b.*?\b{acr}\b|\b{acr}\b.*?\b(?:depok|malang|jakarta)\b", full_text, re.I):
+                        continue
+                    campus = full_name
+                    campus_status = "ok"
+                    break
+
+    # 6. Global Fallback: jika seksi pendidikan tidak mendeteksi jurusan, cari di seluruh dokumen CV
     if not major and full_text.strip():
         # Pola eksplisit berlabel di seluruh dokumen
         global_label_match = re.search(
